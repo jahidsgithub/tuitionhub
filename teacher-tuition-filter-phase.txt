@@ -1,0 +1,1478 @@
+<?php
+
+namespace App\Http\Controllers\Teacher;
+
+use App\Http\Controllers\Controller;
+use App\Models\Subscription;
+use App\Models\TuitionApplication;
+use App\Models\TuitionPost;
+use App\Services\UserNotificationService;
+use Illuminate\Database\QueryException;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\View\View;
+
+class TuitionController extends Controller
+{
+    /**
+     * Browse published tuition posts.
+     */
+    public function index(
+        Request $request
+    ): View|RedirectResponse {
+        $user = $request->user();
+
+        $teacherProfile =
+            $user->teacherProfile;
+
+        /*
+        |--------------------------------------------------------------------------
+        | Teacher Profile Required
+        |--------------------------------------------------------------------------
+        */
+
+        if (! $teacherProfile) {
+            return redirect()
+                ->route(
+                    'teacher.profile.edit'
+                )
+                ->with(
+                    'error',
+                    'Please complete your teacher profile first.'
+                );
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Verification Required
+        |--------------------------------------------------------------------------
+        */
+
+        if (! $teacherProfile->is_verified) {
+            return redirect()
+                ->route(
+                    'teacher.profile.edit'
+                )
+                ->with(
+                    'error',
+                    'Your teacher profile is waiting for admin verification. You can browse and apply for tuition after verification.'
+                );
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Availability Required
+        |--------------------------------------------------------------------------
+        */
+
+        if (! $teacherProfile->is_available) {
+            return redirect()
+                ->route(
+                    'teacher.profile.edit'
+                )
+                ->with(
+                    'error',
+                    'Your profile is currently marked unavailable. Enable availability before browsing tuition opportunities.'
+                );
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Published Tuition Query
+        |--------------------------------------------------------------------------
+        */
+
+        $query = TuitionPost::query()
+            ->with([
+                'location',
+                'subjects',
+                'user',
+            ])
+            ->where(
+                'status',
+                'published'
+            );
+
+        /*
+        |--------------------------------------------------------------------------
+        | Search
+        |--------------------------------------------------------------------------
+        */
+
+        if ($request->filled('search')) {
+            $search = trim(
+                (string) $request->search
+            );
+
+            $query->where(
+                function ($q) use ($search) {
+                    $q->where(
+                        'title',
+                        'like',
+                        "%{$search}%"
+                    )
+                        ->orWhere(
+                            'class_level',
+                            'like',
+                            "%{$search}%"
+                        )
+                        ->orWhere(
+                            'tuition_code',
+                            'like',
+                            "%{$search}%"
+                        )
+                        ->orWhereHas(
+                            'subjects',
+                            function (
+                                $subjectQuery
+                            ) use ($search) {
+                                $subjectQuery->where(
+                                    'name',
+                                    'like',
+                                    "%{$search}%"
+                                );
+                            }
+                        );
+                }
+            );
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Location Filter
+        |--------------------------------------------------------------------------
+        */
+
+        if ($request->filled('location')) {
+            $query->where(
+                'location_id',
+                $request->location
+            );
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Teaching Mode Filter
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            $request->filled(
+                'teaching_mode'
+            )
+        ) {
+            $query->where(
+                'teaching_mode',
+                $request->teaching_mode
+            );
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Gender Match
+        |--------------------------------------------------------------------------
+        */
+
+        if ($teacherProfile->gender) {
+            $query->where(
+                function (
+                    $q
+                ) use ($teacherProfile) {
+                    $q->where(
+                        'preferred_teacher_gender',
+                        'any'
+                    )
+                        ->orWhere(
+                            'preferred_teacher_gender',
+                            $teacherProfile->gender
+                        );
+                }
+            );
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Subject Match Priority
+        |--------------------------------------------------------------------------
+        */
+
+        $teacherSubjectIds =
+            $teacherProfile
+                ->subjects()
+                ->pluck(
+                    'subjects.id'
+                );
+
+        if (
+            $teacherSubjectIds
+                ->isNotEmpty()
+        ) {
+            $query->withCount([
+                'subjects as matching_subjects_count' =>
+                    function (
+                        $subjectQuery
+                    ) use (
+                        $teacherSubjectIds
+                    ) {
+                        $subjectQuery
+                            ->whereIn(
+                                'subjects.id',
+                                $teacherSubjectIds
+                            );
+                    },
+            ]);
+
+            $query->orderByDesc(
+                'matching_subjects_count'
+            );
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Pagination
+        |--------------------------------------------------------------------------
+        */
+
+        $tuitions = $query
+            ->orderByDesc(
+                'published_at'
+            )
+            ->paginate(12)
+            ->withQueryString();
+
+        return view(
+            'teacher.tuitions.index',
+            compact('tuitions')
+        );
+    }
+
+    /**
+     * Show one tuition post.
+     */
+    public function show(
+        TuitionPost $tuition
+    ): View|RedirectResponse {
+        $user = auth()->user();
+
+        $teacherProfile =
+            $user->teacherProfile;
+
+        /*
+        |--------------------------------------------------------------------------
+        | Verified Teacher Required
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            ! $teacherProfile ||
+            ! $teacherProfile->is_verified
+        ) {
+            return redirect()
+                ->route(
+                    'teacher.profile.edit'
+                )
+                ->with(
+                    'error',
+                    'Your teacher profile must be verified before viewing tuition details.'
+                );
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Availability Required
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            ! $teacherProfile
+                ->is_available
+        ) {
+            return redirect()
+                ->route(
+                    'teacher.profile.edit'
+                )
+                ->with(
+                    'error',
+                    'Your profile is currently unavailable.'
+                );
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Published Tuition Only
+        |--------------------------------------------------------------------------
+        */
+
+        abort_if(
+            $tuition->status !==
+                'published',
+            404
+        );
+
+        $tuition->load([
+            'location',
+            'subjects',
+            'user',
+        ]);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Active Subscription
+        |--------------------------------------------------------------------------
+        */
+
+        $activeSubscription =
+            $user
+                ->activeSubscription();
+
+        /*
+        |--------------------------------------------------------------------------
+        | Existing Application
+        |--------------------------------------------------------------------------
+        */
+
+        $alreadyApplied =
+            TuitionApplication::query()
+                ->where(
+                    'tuition_post_id',
+                    $tuition->id
+                )
+                ->where(
+                    'teacher_profile_id',
+                    $teacherProfile->id
+                )
+                ->exists();
+
+        return view(
+            'teacher.tuitions.show',
+            compact(
+                'tuition',
+                'alreadyApplied',
+                'activeSubscription'
+            )
+        );
+    }
+
+    /**
+     * Apply for tuition safely.
+     */
+    public function apply(
+        Request $request,
+        TuitionPost $tuition
+    ): RedirectResponse {
+        $user = $request->user();
+
+        $teacherProfile =
+            $user->teacherProfile;
+
+        /*
+        |--------------------------------------------------------------------------
+        | Teacher Profile Required
+        |--------------------------------------------------------------------------
+        */
+
+        if (! $teacherProfile) {
+            return redirect()
+                ->route(
+                    'teacher.profile.edit'
+                )
+                ->with(
+                    'error',
+                    'Please complete your teacher profile first.'
+                );
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Verification Required
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            ! $teacherProfile
+                ->is_verified
+        ) {
+            return redirect()
+                ->route(
+                    'teacher.profile.edit'
+                )
+                ->with(
+                    'error',
+                    'Your teacher profile must be verified by the admin before you can apply for tuition.'
+                );
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Availability Required
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            ! $teacherProfile
+                ->is_available
+        ) {
+            return redirect()
+                ->route(
+                    'teacher.profile.edit'
+                )
+                ->with(
+                    'error',
+                    'Your profile is currently marked unavailable. Enable availability before applying.'
+                );
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Validate Input
+        |--------------------------------------------------------------------------
+        */
+
+        $validated =
+            $request->validate([
+                'message' => [
+                    'nullable',
+                    'string',
+                    'max:2000',
+                ],
+
+                'expected_salary' => [
+                    'nullable',
+                    'numeric',
+                    'min:0',
+                    'max:9999999',
+                ],
+            ]);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Atomic Apply Transaction
+        |--------------------------------------------------------------------------
+        */
+
+        try {
+            $result = DB::transaction(
+                function () use (
+                    $user,
+                    $teacherProfile,
+                    $tuition,
+                    $validated
+                ) {
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Lock Teacher Profile
+                    |--------------------------------------------------------------------------
+                    */
+
+                    $lockedTeacherProfile =
+                        $teacherProfile
+                            ->newQuery()
+                            ->lockForUpdate()
+                            ->findOrFail(
+                                $teacherProfile->id
+                            );
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Re-check Verification
+                    |--------------------------------------------------------------------------
+                    */
+
+                    if (
+                        ! $lockedTeacherProfile
+                            ->is_verified
+                    ) {
+                        return [
+                            'success' =>
+                                false,
+
+                            'message' =>
+                                'Your teacher verification is no longer active.',
+
+                            'verification_required' =>
+                                true,
+                        ];
+                    }
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Re-check Availability
+                    |--------------------------------------------------------------------------
+                    */
+
+                    if (
+                        ! $lockedTeacherProfile
+                            ->is_available
+                    ) {
+                        return [
+                            'success' =>
+                                false,
+
+                            'message' =>
+                                'Your teacher profile is currently unavailable.',
+
+                            'verification_required' =>
+                                true,
+                        ];
+                    }
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Lock Tuition
+                    |--------------------------------------------------------------------------
+                    */
+
+                    $lockedTuition =
+                        TuitionPost::query()
+                            ->with('user')
+                            ->lockForUpdate()
+                            ->findOrFail(
+                                $tuition->id
+                            );
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Re-check Tuition Status
+                    |--------------------------------------------------------------------------
+                    */
+
+                    if (
+                        $lockedTuition
+                            ->status !==
+                        'published'
+                    ) {
+                        return [
+                            'success' =>
+                                false,
+
+                            'message' =>
+                                'This tuition is no longer available.',
+                        ];
+                    }
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Duplicate Application Check
+                    |--------------------------------------------------------------------------
+                    */
+
+                    $existingApplication =
+                        TuitionApplication::query()
+                            ->where(
+                                'tuition_post_id',
+                                $lockedTuition->id
+                            )
+                            ->where(
+                                'teacher_profile_id',
+                                $lockedTeacherProfile->id
+                            )
+                            ->exists();
+
+                    if (
+                        $existingApplication
+                    ) {
+                        return [
+                            'success' =>
+                                false,
+
+                            'message' =>
+                                'You have already applied for this tuition.',
+                        ];
+                    }
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Lock Active Subscription
+                    |--------------------------------------------------------------------------
+                    */
+
+                    $subscription =
+                        Subscription::query()
+                            ->where(
+                                'user_id',
+                                $user->id
+                            )
+                            ->where(
+                                'status',
+                                'active'
+                            )
+                            ->where(
+                                function (
+                                    $query
+                                ) {
+                                    $query
+                                        ->whereNull(
+                                            'expires_at'
+                                        )
+                                        ->orWhere(
+                                            'expires_at',
+                                            '>',
+                                            now()
+                                        );
+                                }
+                            )
+                            ->orderByDesc(
+                                'expires_at'
+                            )
+                            ->lockForUpdate()
+                            ->first();
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Active Subscription Required
+                    |--------------------------------------------------------------------------
+                    */
+
+                    if (! $subscription) {
+                        return [
+                            'success' =>
+                                false,
+
+                            'message' =>
+                                'You need an active subscription before applying for tuition.',
+
+                            'subscription_required' =>
+                                true,
+                        ];
+                    }
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Re-check Expiry
+                    |--------------------------------------------------------------------------
+                    */
+
+                    if (
+                        ! $subscription
+                            ->isActive()
+                    ) {
+                        return [
+                            'success' =>
+                                false,
+
+                            'message' =>
+                                'Your subscription has expired.',
+
+                            'subscription_required' =>
+                                true,
+                        ];
+                    }
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Snapshot Application Limit
+                    |--------------------------------------------------------------------------
+                    */
+
+                    $applicationLimit =
+                        $subscription
+                            ->snapshotApplicationLimit();
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Application Limit Check
+                    |--------------------------------------------------------------------------
+                    */
+
+                    if (
+                        $applicationLimit !==
+                            null &&
+                        $subscription
+                            ->applications_used >=
+                            $applicationLimit
+                    ) {
+                        return [
+                            'success' =>
+                                false,
+
+                            'message' =>
+                                'You have reached the application limit of your current subscription plan.',
+
+                            'subscription_required' =>
+                                true,
+                        ];
+                    }
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Create Application
+                    |--------------------------------------------------------------------------
+                    */
+
+                    $application =
+                        TuitionApplication::create([
+                            'tuition_post_id' =>
+                                $lockedTuition->id,
+
+                            'teacher_profile_id' =>
+                                $lockedTeacherProfile->id,
+
+                            'message' =>
+                                $validated[
+                                    'message'
+                                ] ?? null,
+
+                            'expected_salary' =>
+                                $validated[
+                                    'expected_salary'
+                                ] ?? null,
+
+                            'status' =>
+                                'pending',
+                        ]);
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Consume Application Credit
+                    |--------------------------------------------------------------------------
+                    |
+                    | If the INSERT above fails because of the unique DB guard,
+                    | the transaction rolls back and this increment never persists.
+                    |
+                    */
+
+                    $subscription
+                        ->increment(
+                            'applications_used'
+                        );
+
+                    $subscription
+                        ->refresh();
+
+                    return [
+                        'success' =>
+                            true,
+
+                        'application' =>
+                            $application,
+
+                        'tuition' =>
+                            $lockedTuition,
+
+                        'applications_used' =>
+                            $subscription
+                                ->applications_used,
+
+                        'application_limit' =>
+                            $applicationLimit,
+                    ];
+                }
+            );
+        } catch (QueryException $exception) {
+            /*
+            |--------------------------------------------------------------------------
+            | Graceful Database Duplicate Protection
+            |--------------------------------------------------------------------------
+            */
+
+            if (
+                $this
+                    ->isDuplicateApplicationException(
+                        $exception
+                    )
+            ) {
+                return redirect()
+                    ->route(
+                        'teacher.tuitions.show',
+                        $tuition
+                    )
+                    ->with(
+                        'error',
+                        'You have already applied for this tuition.'
+                    );
+            }
+
+            throw $exception;
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Failed Apply
+        |--------------------------------------------------------------------------
+        */
+
+        if (! $result['success']) {
+            if (
+                $result[
+                    'verification_required'
+                ] ?? false
+            ) {
+                return redirect()
+                    ->route(
+                        'teacher.profile.edit'
+                    )
+                    ->with(
+                        'error',
+                        $result['message']
+                    );
+            }
+
+            if (
+                $result[
+                    'subscription_required'
+                ] ?? false
+            ) {
+                return redirect()
+                    ->route(
+                        'teacher.subscription.index'
+                    )
+                    ->with(
+                        'error',
+                        $result['message']
+                    );
+            }
+
+            return back()->with(
+                'error',
+                $result['message']
+            );
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Notify Student After Commit
+        |--------------------------------------------------------------------------
+        */
+
+        $lockedTuition =
+            $result['tuition'];
+
+        if ($lockedTuition->user) {
+            UserNotificationService::send(
+                $lockedTuition->user,
+
+                'New Teacher Application',
+
+                $user->name
+                    .' applied for '
+                    .$lockedTuition->title
+                    .'.',
+
+                route(
+                    'student.tuitions.applications.index',
+                    $lockedTuition
+                ),
+
+                'tuition_application'
+            );
+        }
+
+        return redirect()
+            ->route(
+                'teacher.tuitions.show',
+                $lockedTuition
+            )
+            ->with(
+                'success',
+                'Application submitted successfully.'
+            );
+    }
+
+    /**
+     * Show teacher applications.
+     */
+    public function applications(): View
+    {
+        $teacherProfile =
+            auth()
+                ->user()
+                ->teacherProfile;
+
+        if (! $teacherProfile) {
+            return view(
+                'teacher.tuitions.applications',
+                [
+                    'applications' =>
+                        collect(),
+                ]
+            );
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Historical Applications Stay Visible
+        |--------------------------------------------------------------------------
+        */
+
+        $applications =
+            TuitionApplication::query()
+                ->with([
+                    'tuitionPost.location',
+                    'tuitionPost.subjects',
+                ])
+                ->where(
+                    'teacher_profile_id',
+                    $teacherProfile->id
+                )
+                ->latest()
+                ->paginate(10);
+
+        return view(
+            'teacher.tuitions.applications',
+            compact('applications')
+        );
+    }
+
+    /**
+     * Withdraw application safely.
+     */
+    public function withdraw(
+        TuitionApplication $application
+    ): RedirectResponse {
+        $user = auth()->user();
+
+        $teacherProfile =
+            $user->teacherProfile;
+
+        /*
+        |--------------------------------------------------------------------------
+        | Teacher Profile Required
+        |--------------------------------------------------------------------------
+        */
+
+        abort_unless(
+            $teacherProfile,
+            403
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | Atomic Withdrawal
+        |--------------------------------------------------------------------------
+        */
+
+        $result = DB::transaction(
+            function () use (
+                $application,
+                $teacherProfile
+            ) {
+                /*
+                |--------------------------------------------------------------------------
+                | Lock Application
+                |--------------------------------------------------------------------------
+                */
+
+                $lockedApplication =
+                    TuitionApplication::query()
+                        ->lockForUpdate()
+                        ->findOrFail(
+                            $application->id
+                        );
+
+                /*
+                |--------------------------------------------------------------------------
+                | Ownership Check
+                |--------------------------------------------------------------------------
+                */
+
+                abort_unless(
+                    $lockedApplication
+                        ->teacher_profile_id ===
+                    $teacherProfile->id,
+                    403
+                );
+
+                /*
+                |--------------------------------------------------------------------------
+                | Withdrawable Status Check
+                |--------------------------------------------------------------------------
+                */
+
+                if (
+                    ! in_array(
+                        $lockedApplication
+                            ->status,
+                        [
+                            'pending',
+                            'shortlisted',
+                        ],
+                        true
+                    )
+                ) {
+                    return [
+                        'success' =>
+                            false,
+
+                        'message' =>
+                            'This application can no longer be withdrawn.',
+                    ];
+                }
+
+                /*
+                |--------------------------------------------------------------------------
+                | Load Tuition / Student
+                |--------------------------------------------------------------------------
+                */
+
+                $lockedApplication
+                    ->load(
+                        'tuitionPost.user'
+                    );
+
+                /*
+                |--------------------------------------------------------------------------
+                | Withdraw
+                |--------------------------------------------------------------------------
+                */
+
+                $lockedApplication
+                    ->update([
+                        'status' =>
+                            'withdrawn',
+                    ]);
+
+                /*
+                |--------------------------------------------------------------------------
+                | Application Credit Is Not Refunded
+                |--------------------------------------------------------------------------
+                */
+
+                return [
+                    'success' =>
+                        true,
+
+                    'application' =>
+                        $lockedApplication,
+                ];
+            }
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | Failed Withdrawal
+        |--------------------------------------------------------------------------
+        */
+
+        if (! $result['success']) {
+            return back()->with(
+                'error',
+                $result['message']
+            );
+        }
+
+        $lockedApplication =
+            $result['application'];
+
+        /*
+        |--------------------------------------------------------------------------
+        | Notify Student After Commit
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            $lockedApplication
+                ->tuitionPost
+                ?->user
+        ) {
+            UserNotificationService::send(
+                $lockedApplication
+                    ->tuitionPost
+                    ->user,
+
+                'Application Withdrawn',
+
+                $user->name
+                    .' withdrew an application for '
+                    .$lockedApplication
+                        ->tuitionPost
+                        ->title
+                    .'.',
+
+                route(
+                    'student.tuitions.applications.index',
+                    $lockedApplication
+                        ->tuitionPost
+                ),
+
+                'tuition_application'
+            );
+        }
+
+        return back()->with(
+            'success',
+            'Application withdrawn successfully.'
+        );
+    }
+
+    /**
+     * Determine whether the database exception came from the
+     * teacher + tuition application unique constraint.
+     */
+    private function isDuplicateApplicationException(
+        QueryException $exception
+    ): bool {
+        $mysqlErrorCode =
+            $exception->errorInfo[1]
+            ?? null;
+
+        if (
+            (int) $mysqlErrorCode !==
+            1062
+        ) {
+            return false;
+        }
+
+        $message =
+            strtolower(
+                $exception
+                    ->getMessage()
+            );
+
+        /*
+        |--------------------------------------------------------------------------
+        | Support Current + Older Unique Index Names
+        |--------------------------------------------------------------------------
+        */
+
+        return
+            str_contains(
+                $message,
+                'tuition_application_teacher_unique'
+            )
+            ||
+            str_contains(
+                $message,
+                'tuition_applications_tuition_post_id_teacher_profile_id_unique'
+            )
+            ||
+            (
+                str_contains(
+                    $message,
+                    'tuition_applications'
+                )
+                &&
+                str_contains(
+                    $message,
+                    'tuition_post_id'
+                )
+            );
+    }
+}
+@extends('layouts.app')
+
+@section('title', 'Find Tuition - Tuition Hub')
+
+@php
+    $pageTitle = 'Find Tuition';
+    $pageSubtitle = 'Teacher Marketplace';
+@endphp
+
+@section('content')
+
+    <section class="rounded-3xl bg-gradient-to-br from-slate-950 via-indigo-950 to-indigo-700 p-6 text-white sm:p-8">
+
+        <div class="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+
+            <div>
+
+                <p class="text-sm font-semibold text-indigo-200">
+                    Tuition Marketplace
+                </p>
+
+                <h2 class="mt-2 text-3xl font-black">
+                    Find your next tuition
+                </h2>
+
+                <p class="mt-3 max-w-2xl text-sm leading-6 text-indigo-100">
+                    Browse published tuition opportunities and apply to the ones
+                    that match your experience and preferences.
+                </p>
+
+            </div>
+
+            <a
+                href="{{ route('teacher.tuitions.applications') }}"
+                class="inline-flex justify-center rounded-xl border border-white/15 bg-white/10 px-5 py-3 text-sm font-bold text-white transition hover:bg-white/20"
+            >
+                My Applications
+            </a>
+
+        </div>
+
+    </section>
+
+    <section class="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+
+        <form
+            method="GET"
+            action="{{ route('teacher.tuitions.index') }}"
+            class="grid gap-4 md:grid-cols-[minmax(0,1fr)_220px_auto]"
+        >
+
+            <div>
+
+                <label
+                    for="search"
+                    class="mb-2 block text-sm font-semibold text-slate-700"
+                >
+                    Search Tuition
+                </label>
+
+                <input
+                    id="search"
+                    type="text"
+                    name="search"
+                    value="{{ request('search') }}"
+                    placeholder="Title, class, subject or tuition code"
+                    class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
+                >
+
+            </div>
+
+            <div>
+
+                <label
+                    for="teaching_mode"
+                    class="mb-2 block text-sm font-semibold text-slate-700"
+                >
+                    Teaching Mode
+                </label>
+
+                <select
+                    id="teaching_mode"
+                    name="teaching_mode"
+                    class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
+                >
+                    <option value="">
+                        All Modes
+                    </option>
+
+                    <option
+                        value="offline"
+                        @selected(request('teaching_mode') === 'offline')
+                    >
+                        Offline
+                    </option>
+
+                    <option
+                        value="online"
+                        @selected(request('teaching_mode') === 'online')
+                    >
+                        Online
+                    </option>
+
+                    <option
+                        value="both"
+                        @selected(request('teaching_mode') === 'both')
+                    >
+                        Both
+                    </option>
+                </select>
+
+            </div>
+
+            <div class="flex items-end gap-2">
+
+                <button
+                    type="submit"
+                    class="rounded-xl bg-indigo-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-indigo-700"
+                >
+                    Search
+                </button>
+
+                @if(
+                    request()->filled('search') ||
+                    request()->filled('teaching_mode')
+                )
+
+                    <a
+                        href="{{ route('teacher.tuitions.index') }}"
+                        class="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+                    >
+                        Clear
+                    </a>
+
+                @endif
+
+            </div>
+
+        </form>
+
+    </section>
+
+    <section class="mt-6">
+
+        <div class="mb-4 flex items-center justify-between">
+
+            <div>
+
+                <h3 class="text-xl font-black text-slate-900">
+                    Available Tuitions
+                </h3>
+
+                <p class="mt-1 text-sm text-slate-500">
+                    {{ $tuitions->total() }} opportunity(s) found
+                </p>
+
+            </div>
+
+        </div>
+
+        <div class="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+
+            @forelse($tuitions as $tuition)
+
+                <article class="flex flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-indigo-200 hover:shadow-md">
+
+                    <div class="flex items-start justify-between gap-3">
+
+                        <div class="min-w-0">
+
+                            <h4 class="text-lg font-bold text-slate-900">
+                                {{ $tuition->title }}
+                            </h4>
+
+                            <p class="mt-1 text-xs font-medium text-slate-400">
+                                {{ $tuition->tuition_code }}
+                            </p>
+
+                        </div>
+
+                        <span class="shrink-0 rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-bold text-emerald-700">
+                            {{ strtoupper($tuition->status) }}
+                        </span>
+
+                    </div>
+
+                    <div class="mt-5 grid grid-cols-2 gap-3">
+
+                        <div class="rounded-xl bg-slate-50 p-3">
+
+                            <p class="text-xs text-slate-400">
+                                Class
+                            </p>
+
+                            <p class="mt-1 text-sm font-semibold text-slate-800">
+                                {{ $tuition->class_level }}
+                            </p>
+
+                        </div>
+
+                        <div class="rounded-xl bg-slate-50 p-3">
+
+                            <p class="text-xs text-slate-400">
+                                Location
+                            </p>
+
+                            <p class="mt-1 text-sm font-semibold text-slate-800">
+                                {{ $tuition->location?->area ?? 'Not specified' }}
+                            </p>
+
+                        </div>
+
+                        <div class="rounded-xl bg-slate-50 p-3">
+
+                            <p class="text-xs text-slate-400">
+                                Salary
+                            </p>
+
+                            <p class="mt-1 text-sm font-semibold text-slate-800">
+
+                                @if($tuition->salary !== null)
+
+                                    ৳{{ number_format(
+                                        (float) $tuition->salary
+                                    ) }}
+
+                                @else
+
+                                    Negotiable
+
+                                @endif
+
+                            </p>
+
+                        </div>
+
+                        <div class="rounded-xl bg-slate-50 p-3">
+
+                            <p class="text-xs text-slate-400">
+                                Mode
+                            </p>
+
+                            <p class="mt-1 text-sm font-semibold text-slate-800">
+                                {{ ucfirst($tuition->teaching_mode) }}
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                    <div class="mt-5">
+
+                        <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                            Subjects
+                        </p>
+
+                        <div class="mt-2 flex flex-wrap gap-2">
+
+                            @foreach($tuition->subjects->take(4) as $subject)
+
+                                <span class="rounded-lg bg-indigo-50 px-2.5 py-1 text-xs font-medium text-indigo-700">
+                                    {{ $subject->name }}
+                                </span>
+
+                            @endforeach
+
+                            @if($tuition->subjects->count() > 4)
+
+                                <span class="rounded-lg bg-slate-100 px-2.5 py-1 text-xs text-slate-500">
+                                    +{{ $tuition->subjects->count() - 4 }}
+                                </span>
+
+                            @endif
+
+                        </div>
+
+                    </div>
+
+                    <div class="mt-5 text-sm text-slate-500">
+                        {{ $tuition->days_per_week ?? 'N/A' }} day(s) / week
+                    </div>
+
+                    <div class="mt-auto pt-6">
+
+                        <a
+                            href="{{ route(
+                                'teacher.tuitions.show',
+                                $tuition
+                            ) }}"
+                            class="flex w-full justify-center rounded-xl bg-slate-900 px-4 py-3 text-sm font-bold text-white transition hover:bg-indigo-600"
+                        >
+                            View Details
+                        </a>
+
+                    </div>
+
+                </article>
+
+            @empty
+
+                <div class="md:col-span-2 xl:col-span-3 rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-14 text-center">
+
+                    <h3 class="text-lg font-bold text-slate-800">
+                        No tuition found
+                    </h3>
+
+                    <p class="mt-2 text-sm text-slate-500">
+                        Try changing your search filters.
+                    </p>
+
+                </div>
+
+            @endforelse
+
+        </div>
+
+        @if($tuitions->hasPages())
+
+            <div class="mt-8">
+                {{ $tuitions->links() }}
+            </div>
+
+        @endif
+
+    </section>
+
+@endsection

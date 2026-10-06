@@ -1,0 +1,266 @@
+C:\laragon\www\tuition-hub\resources\views\welcome.blade.php:1:<!DOCTYPE html>
+C:\laragon\www\tuition-hub\resources\views\welcome.blade.php:3:<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+C:\laragon\www\tuition-hub\resources\views\auth\forgot-password.blade.php:1:<!DOCTYPE html>
+C:\laragon\www\tuition-hub\resources\views\auth\forgot-password.blade.php:2:<html lang="en">
+C:\laragon\www\tuition-hub\resources\views\auth\login.blade.php:1:<!DOCTYPE html>
+C:\laragon\www\tuition-hub\resources\views\auth\login.blade.php:2:<html lang="en">
+C:\laragon\www\tuition-hub\resources\views\auth\register.blade.php:1:<!DOCTYPE html>
+C:\laragon\www\tuition-hub\resources\views\auth\register.blade.php:2:<html lang="en">
+C:\laragon\www\tuition-hub\resources\views\auth\reset-password.blade.php:1:<!DOCTYPE html>
+C:\laragon\www\tuition-hub\resources\views\auth\reset-password.blade.php:2:<html lang="en">
+C:\laragon\www\tuition-hub\resources\views\auth\verify-email.blade.php:1:<!DOCTYPE html>
+C:\laragon\www\tuition-hub\resources\views\auth\verify-email.blade.php:2:<html lang="en">
+C:\laragon\www\tuition-hub\resources\views\layouts\app.blade.php:1:<!DOCTYPE html>
+C:\laragon\www\tuition-hub\resources\views\layouts\app.blade.php:2:<html lang="en">
+
+  GET|HEAD  / ............................................................................................................... home GÇ¦ routes/web.php:55
+  GET|HEAD  account/security .................................................................. account.security.edit GÇ¦ AccountSecurityController@edit
+  PUT       account/security/password ..................................................... account.security.update GÇ¦ AccountSecurityController@update
+  GET|HEAD  account/settings .................................................................. account.settings.edit GÇ¦ AccountSettingsController@edit
+  PUT       account/settings .............................................................. account.settings.update GÇ¦ AccountSettingsController@update
+  GET|HEAD  admin/assignments ............................................................. admin.assignments.index GÇ¦ Admin\AssignmentController@index
+  GET|HEAD  admin/audit-logs ................................................................. admin.audit-logs.index GÇ¦ Admin\AuditLogController@index
+  GET|HEAD  admin/complaints ................................................................ admin.complaints.index GÇ¦ Admin\ComplaintController@index
+  PATCH     admin/complaints/{complaint} .................................................. admin.complaints.update GÇ¦ Admin\ComplaintController@update
+  GET|HEAD  admin/dashboard ........................................................................ admin.dashboard GÇ¦ Admin\DashboardController@index
+  GET|HEAD  admin/payment-settings ................................................. admin.payment-settings.edit GÇ¦ Admin\PaymentSettingController@edit
+  PUT       admin/payment-settings ............................................. admin.payment-settings.update GÇ¦ Admin\PaymentSettingController@update
+  GET|HEAD  admin/payments ...................................................................... admin.payments.index GÇ¦ Admin\PaymentController@index
+  PATCH     admin/payments/{payment}/approve ................................................ admin.payments.approve GÇ¦ Admin\PaymentController@approve
+  PATCH     admin/payments/{payment}/reject ................................................... admin.payments.reject GÇ¦ Admin\PaymentController@reject
+  GET|HEAD  admin/subscription-plans ......................................... admin.subscription-plans.index GÇ¦ Admin\SubscriptionPlanController@index
+  PUT       admin/subscription-plans/{plan} ................................ admin.subscription-plans.update GÇ¦ Admin\SubscriptionPlanController@update
+  GET|HEAD  admin/subscription-plans/{plan}/edit ............................... admin.subscription-plans.edit GÇ¦ Admin\SubscriptionPlanController@edit
+  PATCH     admin/subscription-plans/{plan}/toggle ......................... admin.subscription-plans.toggle GÇ¦ Admin\SubscriptionPlanController@toggle
+  GET|HEAD  admin/teachers .......................................................... admin.teachers.index GÇ¦ Admin\TeacherVerificationController@index
+  PATCH     admin/teachers/{teacher}/unverify ................................. admin.teachers.unverify GÇ¦ Admin\TeacherVerificationController@unverify
+  PATCH     admin/teachers/{teacher}/verify ....................................... admin.teachers.verify GÇ¦ Admin\TeacherVerificationController@verify
+  GET|HEAD  admin/tuitions ............................................................ admin.tuitions.index GÇ¦ Admin\TuitionModerationController@index
+  PATCH     admin/tuitions/{tuition}/close ............................................ admin.tuitions.close GÇ¦ Admin\TuitionModerationController@close
+  PATCH     admin/tuitions/{tuition}/pending ...................................... admin.tuitions.pending GÇ¦ Admin\TuitionModerationController@pending
+  PATCH     admin/tuitions/{tuition}/publish ...................................... admin.tuitions.publish GÇ¦ Admin\TuitionModerationController@publish
+  GET|HEAD  admin/users ..................................................................... admin.users.index GÇ¦ Admin\UserManagementController@index
+  PATCH     admin/users/{user}/activate ............................................... admin.users.activate GÇ¦ Admin\UserManagementController@activate
+  PATCH     admin/users/{user}/inactive ............................................... admin.users.inactive GÇ¦ Admin\UserManagementController@inactive
+  PATCH     admin/users/{user}/suspend .................................................. admin.users.suspend GÇ¦ Admin\UserManagementController@suspend
+  GET|HEAD  admin/verification-documents ............................. admin.verification-documents.index GÇ¦ Admin\VerificationDocumentController@index
+  PATCH     admin/verification-documents/{document}/approve ...... admin.verification-documents.approve GÇ¦ Admin\VerificationDocumentController@approve
+  PATCH     admin/verification-documents/{document}/reject ......... admin.verification-documents.reject GÇ¦ Admin\VerificationDocumentController@reject
+  GET|HEAD  admin/verification-documents/{document}/view ............... admin.verification-documents.view GÇ¦ Admin\VerificationDocumentController@view
+  GET|HEAD  dashboard ................................................................................................. dashboard GÇ¦ routes/web.php:205
+  POST      email/verification-notification .............................................. verification.send GÇ¦ Auth\EmailVerificationController@resend
+  GET|HEAD  forgot-password .................................................................. password.request GÇ¦ Auth\ForgotPasswordController@create
+  POST      forgot-password ..................................................................... password.email GÇ¦ Auth\ForgotPasswordController@store
+  GET|HEAD  login ................................................................................. login GÇ¦ Auth\AuthenticatedSessionController@create
+  POST      login .......................................................................................... Auth\AuthenticatedSessionController@store
+  POST      logout .............................................................................. logout GÇ¦ Auth\AuthenticatedSessionController@destroy
+  GET|HEAD  notifications ......................................................................... notifications.index GÇ¦ NotificationController@index
+  PATCH     notifications/read-all ....................................................... notifications.read-all GÇ¦ NotificationController@markAllRead
+  DELETE    notifications/{notification} ...................................................... notifications.destroy GÇ¦ NotificationController@destroy
+  PATCH     notifications/{notification}/read ................................................... notifications.read GÇ¦ NotificationController@markRead
+  GET|HEAD  register ................................................................................. register GÇ¦ Auth\RegisteredUserController@create
+  POST      register ............................................................................................. Auth\RegisteredUserController@store
+  POST      reset-password ...................................................................... password.update GÇ¦ Auth\ResetPasswordController@store
+  GET|HEAD  reset-password/{token} .............................................................. password.reset GÇ¦ Auth\ResetPasswordController@create
+  GET|HEAD  storage/{path} ...................... storage.local GÇ¦ vendor/laravel/framework/src/Illuminate/Filesystem/FilesystemServiceProvider.php:111
+  PUT       storage/{path} ............... storage.local.upload GÇ¦ vendor/laravel/framework/src/Illuminate/Filesystem/FilesystemServiceProvider.php:119
+  GET|HEAD  student/assignments ....................................................... student.assignments.index GÇ¦ Student\AssignmentController@index
+  PATCH     student/assignments/{assignment}/cancel ................................. student.assignments.cancel GÇ¦ Student\AssignmentController@cancel
+  GET|HEAD  student/assignments/{assignment}/complaint ................................ student.complaints.create GÇ¦ Student\ComplaintController@create
+  POST      student/assignments/{assignment}/complaint .................................. student.complaints.store GÇ¦ Student\ComplaintController@store
+  PATCH     student/assignments/{assignment}/complete ........................... student.assignments.complete GÇ¦ Student\AssignmentController@complete
+  POST      student/assignments/{assignment}/review ......................... student.assignments.review.store GÇ¦ Student\TeacherReviewController@store
+  GET|HEAD  student/complaints .......................................................... student.complaints.index GÇ¦ Student\ComplaintController@index
+  GET|HEAD  student/dashboard .................................................................. student.dashboard GÇ¦ Student\DashboardController@index
+  GET|HEAD  student/profile .................................................................... student.profile.edit GÇ¦ Student\ProfileController@edit
+  PUT       student/profile ................................................................ student.profile.update GÇ¦ Student\ProfileController@update
+  GET|HEAD  student/teacher-requests ............................................. student.teacher-requests.index GÇ¦ Student\TeacherController@requests
+  PATCH     student/teacher-requests/{teacherRequest}/cancel ............... student.teacher-requests.cancel GÇ¦ Student\TeacherController@cancelRequest
+  PATCH     student/teacher-requests/{teacherRequest}/confirm ............ student.teacher-requests.confirm GÇ¦ Student\TeacherController@confirmTeacher
+  GET|HEAD  student/teachers ................................................................ student.teachers.index GÇ¦ Student\TeacherController@index
+  GET|HEAD  student/teachers/{teacher} ........................................................ student.teachers.show GÇ¦ Student\TeacherController@show
+  POST      student/teachers/{teacher}/request ................................... student.teachers.request GÇ¦ Student\TeacherController@requestTeacher
+  GET|HEAD  student/tuitions ............................................................ student.tuitions.index GÇ¦ Student\TuitionPostController@index
+  POST      student/tuitions ............................................................ student.tuitions.store GÇ¦ Student\TuitionPostController@store
+  GET|HEAD  student/tuitions/create ................................................... student.tuitions.create GÇ¦ Student\TuitionPostController@create
+  PUT       student/tuitions/{tuition} ................................................ student.tuitions.update GÇ¦ Student\TuitionPostController@update
+  DELETE    student/tuitions/{tuition} .............................................. student.tuitions.destroy GÇ¦ Student\TuitionPostController@destroy
+  GET|HEAD  student/tuitions/{tuition}/applications ................. student.tuitions.applications.index GÇ¦ Student\TuitionApplicationController@index
+  PATCH     student/tuitions/{tuition}/applications/{application}/accept student.tuitions.applications.accept GÇ¦ Student\TuitionApplicationController@GÇª
+  PATCH     student/tuitions/{tuition}/applications/{application}/reject student.tuitions.applications.reject GÇ¦ Student\TuitionApplicationController@GÇª
+  PATCH     student/tuitions/{tuition}/applications/{application}/shortlist student.tuitions.applications.shortlist GÇ¦ Student\TuitionApplicationContrGÇª
+  PATCH     student/tuitions/{tuition}/close ............................................ student.tuitions.close GÇ¦ Student\TuitionPostController@close
+  GET|HEAD  student/tuitions/{tuition}/edit ............................................... student.tuitions.edit GÇ¦ Student\TuitionPostController@edit
+  PATCH     teacher/applications/{application}/withdraw ........................... teacher.applications.withdraw GÇ¦ Teacher\TuitionController@withdraw
+  GET|HEAD  teacher/assignments ....................................................... teacher.assignments.index GÇ¦ Teacher\AssignmentController@index
+  GET|HEAD  teacher/assignments/{assignment}/complaint ................................ teacher.complaints.create GÇ¦ Teacher\ComplaintController@create
+  POST      teacher/assignments/{assignment}/complaint .................................. teacher.complaints.store GÇ¦ Teacher\ComplaintController@store
+  GET|HEAD  teacher/complaints .......................................................... teacher.complaints.index GÇ¦ Teacher\ComplaintController@index
+  GET|HEAD  teacher/dashboard .................................................................. teacher.dashboard GÇ¦ Teacher\DashboardController@index
+  GET|HEAD  teacher/payment/{subscription} ................................................. teacher.payment.create GÇ¦ Teacher\PaymentController@create
+  POST      teacher/payment/{subscription} ................................................... teacher.payment.store GÇ¦ Teacher\PaymentController@store
+  GET|HEAD  teacher/profile .................................................................... teacher.profile.edit GÇ¦ Teacher\ProfileController@edit
+  PUT       teacher/profile ................................................................ teacher.profile.update GÇ¦ Teacher\ProfileController@update
+  GET|HEAD  teacher/requests ......................................................... teacher.requests.index GÇ¦ Teacher\TeacherRequestController@index
+  PATCH     teacher/requests/{teacherRequest}/accept ............................... teacher.requests.accept GÇ¦ Teacher\TeacherRequestController@accept
+  PATCH     teacher/requests/{teacherRequest}/reject ............................... teacher.requests.reject GÇ¦ Teacher\TeacherRequestController@reject
+  GET|HEAD  teacher/subscription ................................................... teacher.subscription.index GÇ¦ Teacher\SubscriptionController@index
+  POST      teacher/subscription/{plan} .................................... teacher.subscription.subscribe GÇ¦ Teacher\SubscriptionController@subscribe
+  GET|HEAD  teacher/tuitions ................................................................ teacher.tuitions.index GÇ¦ Teacher\TuitionController@index
+  GET|HEAD  teacher/tuitions/applications ..................................... teacher.tuitions.applications GÇ¦ Teacher\TuitionController@applications
+  GET|HEAD  teacher/tuitions/{tuition} ........................................................ teacher.tuitions.show GÇ¦ Teacher\TuitionController@show
+  POST      teacher/tuitions/{tuition}/apply ................................................ teacher.tuitions.apply GÇ¦ Teacher\TuitionController@apply
+  GET|HEAD  teacher/verification-documents ....................... teacher.verification-documents.index GÇ¦ Teacher\VerificationDocumentController@index
+  POST      teacher/verification-documents ....................... teacher.verification-documents.store GÇ¦ Teacher\VerificationDocumentController@store
+  DELETE    teacher/verification-documents/{document} ........ teacher.verification-documents.destroy GÇ¦ Teacher\VerificationDocumentController@destroy
+  GET|HEAD  teacher/verification-documents/{document}/view ......... teacher.verification-documents.view GÇ¦ Teacher\VerificationDocumentController@view
+  GET|HEAD  up ........................................... vendor/laravel/framework/src/Illuminate/Foundation/Configuration/ApplicationBuilder.php:224
+  GET|HEAD  verify-email ............................................................... verification.notice GÇ¦ Auth\EmailVerificationController@notice
+  GET|HEAD  verify-email/{id}/{hash} ................................................... verification.verify GÇ¦ Auth\EmailVerificationController@verify
+
+                                                                                                                                  Showing [104] routes
+
+
+  Migration name .................................................................................................................... Batch / Status  
+  0001_01_01_000000_create_users_table ..................................................................................................... [1] Ran  
+  0001_01_01_000001_create_cache_table ..................................................................................................... [1] Ran  
+  0001_01_01_000002_create_jobs_table ...................................................................................................... [1] Ran  
+  2026_10_03_082402_add_role_and_phone_to_users_table ...................................................................................... [1] Ran  
+  2026_10_03_082403_create_teacher_profiles_table .......................................................................................... [1] Ran  
+  2026_10_03_082404_create_student_profiles_table .......................................................................................... [1] Ran  
+  2026_10_03_082405_create_subjects_table .................................................................................................. [1] Ran  
+  2026_10_03_082406_create_locations_table ................................................................................................. [1] Ran  
+  2026_10_03_082407_create_tuition_posts_table ............................................................................................. [1] Ran  
+  2026_10_03_082408_create_tuition_applications_table ...................................................................................... [1] Ran  
+  2026_10_03_095406_create_subject_teacher_profile_table ................................................................................... [1] Ran  
+  2026_10_03_095407_create_location_teacher_profile_table .................................................................................. [1] Ran  
+  2026_10_03_095410_create_subject_tuition_post_table ...................................................................................... [1] Ran  
+  2026_10_03_113433_create_subscription_plans_table ........................................................................................ [1] Ran  
+  2026_10_03_113434_create_subscriptions_table ............................................................................................. [1] Ran  
+  2026_10_03_113435_create_payments_table .................................................................................................. [1] Ran  
+  2026_10_03_130029_create_teacher_requests_table .......................................................................................... [2] Ran  
+  2026_10_03_135956_add_confirmed_at_to_teacher_requests_table ............................................................................. [3] Ran  
+  2026_10_03_150221_create_notifications_table ............................................................................................. [4] Ran  
+  2026_10_04_050404_create_payment_settings_table .......................................................................................... [5] Ran  
+  2026_10_04_054038_create_teacher_verification_documents_table ............................................................................ [6] Ran  
+  2026_10_04_062358_create_tuition_assignments_table ....................................................................................... [7] Ran  
+  2026_10_04_071044_create_teacher_reviews_table ........................................................................................... [8] Ran  
+  2026_10_04_072213_create_complaints_table ................................................................................................ [9] Ran  
+  2026_10_04_073547_create_audit_logs_table ............................................................................................... [10] Ran  
+  2026_10_04_094646_add_plan_snapshots_to_subscriptions_table ............................................................................. [11] Ran  
+  2026_10_04_095120_add_pending_uniqueness_guards ......................................................................................... [12] Ran  
+  2026_10_04_135239_add_unique_teacher_tuition_guard_to_tuition_applications_table ........................................................ [13] Ran  
+  2026_10_04_141029_backfill_subscription_plan_snapshots .................................................................................. [14] Ran  
+  2026_10_04_141440_add_plan_snapshot_captured_at_to_subscriptions_table .................................................................. [15] Ran  
+  2026_10_04_141625_create_sessions_table ................................................................................................. [16] Ran  
+  2026_10_05_042628_add_unresolved_guard_to_complaints_table .............................................................................. [17] Ran  
+  2026_10_05_043427_add_unique_assignment_guard_to_teacher_reviews_table .................................................................. [18] Ran  
+
+
+  [30;42;1m PASS [39;49;22m[39m Tests\Unit\ExampleTest[39m
+  [32;1mG£ô[39;22m[90m [39m[90mthat true is true[39m
+
+  [30;42;1m PASS [39;49;22m[39m Tests\Feature\AdminModerationAssignmentComplaintReviewTest[39m
+  [32;1mG£ô[39;22m[90m [39m[90madmin can view tuition moderation list[39m[90m                                                                                                      [39m [90m0.58s[39m  
+  [32;1mG£ô[39;22m[90m [39m[90mnon admin cannot access admin tuition moderation[39m[90m                                                                                            [39m [90m0.04s[39m  
+  [32;1mG£ô[39;22m[90m [39m[90madmin can publish pending tuition[39m[90m                                                                                                           [39m [90m0.05s[39m  
+  [32;1mG£ô[39;22m[90m [39m[90madmin can move published tuition back to pending[39m[90m                                                                                            [39m [90m0.03s[39m  
+  [32;1mG£ô[39;22m[90m [39m[90madmin can close published tuition[39m[90m                                                                                                           [39m [90m0.03s[39m  
+  [32;1mG£ô[39;22m[90m [39m[90mstudent can complete own active assignment[39m[90m                                                                                                  [39m [90m0.04s[39m  
+  [32;1mG£ô[39;22m[90m [39m[90mstudent can cancel own active assignment[39m[90m                                                                                                    [39m [90m0.03s[39m  
+  [32;1mG£ô[39;22m[90m [39m[90mother student cannot complete someone elses assignment[39m[90m                                                                                      [39m [90m0.03s[39m  
+  [32;1mG£ô[39;22m[90m [39m[90mstudent can review teacher after completed assignment[39m[90m                                                                                       [39m [90m0.06s[39m  
+  [32;1mG£ô[39;22m[90m [39m[90mstudent cannot review active assignment[39m[90m                                                                                                     [39m [90m0.04s[39m  
+  [32;1mG£ô[39;22m[90m [39m[90mcompleted assignment can only have one review[39m[90m                                                                                               [39m [90m0.04s[39m  
+  [32;1mG£ô[39;22m[90m [39m[90mstudent can submit complaint for own assignment[39m[90m                                                                                             [39m [90m0.05s[39m  
+  [32;1mG£ô[39;22m[90m [39m[90mteacher can submit complaint for assignment[39m[90m                                                                                                 [39m [90m0.04s[39m  
+  [32;1mG£ô[39;22m[90m [39m[90mduplicate unresolved complaint is blocked[39m[90m                                                                                                   [39m [90m0.03s[39m  
+  [32;1mG£ô[39;22m[90m [39m[90madmin can mark complaint investigating[39m[90m                                                                                                      [39m [90m0.04s[39m  
+  [32;1mG£ô[39;22m[90m [39m[90madmin can resolve complaint and clear unresolved guard[39m[90m                                                                                      [39m [90m0.04s[39m  
+
+  [30;42;1m PASS [39;49;22m[39m Tests\Feature\Auth\AuthenticationSecurityTest[39m
+  [32;1mG£ô[39;22m[90m [39m[90mlogin page can be rendered[39m[90m                                                                                                                  [39m [90m0.03s[39m  
+  [32;1mG£ô[39;22m[90m [39m[90mactive user can login with correct credentials[39m[90m                                                                                              [39m [90m0.06s[39m  
+  [32;1mG£ô[39;22m[90m [39m[90muser cannot login with wrong password[39m[90m                                                                                                       [39m [90m0.24s[39m  
+  [32;1mG£ô[39;22m[90m [39m[90minactive user cannot login[39m[90m                                                                                                                  [39m [90m0.03s[39m  
+  [32;1mG£ô[39;22m[90m [39m[90msuspended user cannot login[39m[90m                                                                                                                 [39m [90m0.03s[39m  
+  [32;1mG£ô[39;22m[90m [39m[90mauthenticated user can logout[39m[90m                                                                                                               [39m [90m0.03s[39m  
+  [32;1mG£ô[39;22m[90m [39m[90mforgot password page can be rendered[39m[90m                                                                                                        [39m [90m0.03s[39m  
+  [32;1mG£ô[39;22m[90m [39m[90mpassword reset link can be requested[39m[90m                                                                                                        [39m [90m0.23s[39m  
+  [32;1mG£ô[39;22m[90m [39m[90mpassword can be reset with valid token[39m[90m                                                                                                      [39m [90m0.03s[39m  
+  [32;1mG£ô[39;22m[90m [39m[90memail verification notice is accessible to unverified authenticated user[39m[90m                                                                    [39m [90m0.03s[39m  
+  [32;1mG£ô[39;22m[90m [39m[90mverification email can be resent[39m[90m                                                                                                            [39m [90m0.03s[39m  
+  [32;1mG£ô[39;22m[90m [39m[90mverified user can access account security page[39m[90m                                                                                              [39m [90m0.03s[39m  
+  [32;1mG£ô[39;22m[90m [39m[90mguest cannot access account security page[39m[90m                                                                                                   [39m [90m0.02s[39m  
+  [32;1mG£ô[39;22m[90m [39m[90muser can change password with correct current password[39m[90m                                                                                      [39m [90m0.03s[39m  
+  [32;1mG£ô[39;22m[90m [39m[90muser cannot change password with wrong current password[39m[90m                                                                                     [39m [90m0.03s[39m  
+  [32;1mG£ô[39;22m[90m [39m[90mpassword confirmation must match[39m[90m                                                                                                            [39m [90m0.03s[39m  
+  [32;1mG£ô[39;22m[90m [39m[90muser can access account settings page[39m[90m                                                                                                       [39m [90m0.03s[39m  
+  [32;1mG£ô[39;22m[90m [39m[90mguest cannot access account settings page[39m[90m                                                                                                   [39m [90m0.02s[39m  
+  [32;1mG£ô[39;22m[90m [39m[90muser can update basic account information[39m[90m                                                                                                   [39m [90m0.03s[39m  
+  [32;1mG£ô[39;22m[90m [39m[90mchanging email marks email as unverified[39m[90m                                                                                                    [39m [90m0.11s[39m  
+
+  [30;42;1m PASS [39;49;22m[39m Tests\Feature\ExampleTest[39m
+  [32;1mG£ô[39;22m[90m [39m[90mthe application returns a successful response[39m[90m                                                                                               [39m [90m0.04s[39m  
+
+  [30;42;1m PASS [39;49;22m[39m Tests\Feature\SubscriptionPaymentWorkflowTest[39m
+  [32;1mG£ô[39;22m[90m [39m[90madmin can view payment list[39m[90m                                                                                                                 [39m [90m0.03s[39m  
+  [32;1mG£ô[39;22m[90m [39m[90mteacher cannot access admin payment list[39m[90m                                                                                                    [39m [90m0.03s[39m  
+  [32;1mG£ô[39;22m[90m [39m[90mteacher can open payment page for own pending subscription[39m[90m                                                                                  [39m [90m0.04s[39m  
+  [32;1mG£ô[39;22m[90m [39m[90mteacher cannot open another teachers payment page[39m[90m                                                                                           [39m [90m0.03s[39m  
+  [32;1mG£ô[39;22m[90m [39m[90madmin can approve pending payment and activate subscription[39m[90m                                                                                 [39m [90m0.04s[39m  
+  [32;1mG£ô[39;22m[90m [39m[90mpayment approval uses subscription duration snapshot[39m[90m                                                                                        [39m [90m0.03s[39m  
+  [32;1mG£ô[39;22m[90m [39m[90mapproving new subscription cancels existing active subscription[39m[90m                                                                             [39m [90m0.04s[39m  
+  [32;1mG£ô[39;22m[90m [39m[90madmin can reject pending payment[39m[90m                                                                                                            [39m [90m0.03s[39m  
+  [32;1mG£ô[39;22m[90m [39m[90mpaid payment cannot be approved again[39m[90m                                                                                                       [39m [90m0.03s[39m  
+  [32;1mG£ô[39;22m[90m [39m[90mfailed payment cannot be rejected again[39m[90m                                                                                                     [39m [90m0.03s[39m  
+  [32;1mG£ô[39;22m[90m [39m[90mpayment transaction id must be unique at database level[39m[90m                                                                                     [39m [90m0.03s[39m  
+
+  [30;42;1m PASS [39;49;22m[39m Tests\Feature\TuitionMarketplaceWorkflowTest[39m
+  [32;1mG£ô[39;22m[90m [39m[90mverified available teacher can view tuition list[39m[90m                                                                                            [39m [90m0.05s[39m  
+  [32;1mG£ô[39;22m[90m [39m[90munverified teacher cannot browse tuitions[39m[90m                                                                                                   [39m [90m0.03s[39m  
+  [32;1mG£ô[39;22m[90m [39m[90munavailable teacher cannot browse tuitions[39m[90m                                                                                                  [39m [90m0.03s[39m  
+  [32;1mG£ô[39;22m[90m [39m[90mverified teacher with active subscription can apply for tuition[39m[90m                                                                             [39m [90m0.04s[39m  
+  [32;1mG£ô[39;22m[90m [39m[90mteacher cannot apply twice for same tuition[39m[90m                                                                                                 [39m [90m0.03s[39m  
+  [32;1mG£ô[39;22m[90m [39m[90mteacher without active subscription cannot apply[39m[90m                                                                                            [39m [90m0.03s[39m  
+  [32;1mG£ô[39;22m[90m [39m[90mapplication limit is enforced[39m[90m                                                                                                               [39m [90m0.03s[39m  
+  [32;1mG£ô[39;22m[90m [39m[90mstudent can send direct teacher request[39m[90m                                                                                                     [39m [90m0.03s[39m  
+  [32;1mG£ô[39;22m[90m [39m[90mteacher can accept direct request[39m[90m                                                                                                           [39m [90m0.03s[39m  
+  [32;1mG£ô[39;22m[90m [39m[90mteacher can reject direct request[39m[90m                                                                                                           [39m [90m0.03s[39m  
+  [32;1mG£ô[39;22m[90m [39m[90mstudent can cancel pending direct request[39m[90m                                                                                                   [39m [90m0.03s[39m  
+  [32;1mG£ô[39;22m[90m [39m[90mstudent can confirm accepted teacher and create assignment[39m[90m                                                                                  [39m [90m0.04s[39m  
+  [32;1mG£ô[39;22m[90m [39m[90mconfirming teacher rejects competing applications[39m[90m                                                                                           [39m [90m0.04s[39m  
+
+  [90mTests:[39m    [32;1m62 passed[39;22m[90m (137 assertions)[39m
+  [90mDuration:[39m [39m3.57s[39m
+
+
+> build
+> vite build
+
+[36mvite v8.3.3 [32mbuilding client environment for production...[36m[39m
+node.exe : [33m[plugin laravel:fonts] Optimized font fallbacks require the optional "fontaine" package. Install it, or set "optimizedFallbacks: 
+false" on your fonts to disable the feature.[39m
+At C:\Program Files\nodejs\npm.ps1:29 char:3
++   & $NODE_EXE $NPM_CLI_JS $args
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ([33m[plugin la...e feature.[39m:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+transforming...
+G£ô 3 modules transformed.
+rendering chunks...
+computing gzip size...
+public/build/manifest.json                                      1.47 kB Göé gzip:  0.33 kB
+public/build/fonts-manifest.json                                5.74 kB Göé gzip:  0.71 kB
+public/build/assets/instrument-sans-400-normal-DRC__1Mx.woff2  16.86 kB
+public/build/assets/instrument-sans-500-normal-Dk9ku72i.woff2  17.23 kB
+public/build/assets/instrument-sans-600-normal-B7fBEWYG.woff2  17.40 kB
+public/build/assets/instrument-sans-400-normal-D1W7dsQl.woff   21.24 kB
+public/build/assets/instrument-sans-500-normal-Z6ESRlEs.woff   21.65 kB
+public/build/assets/instrument-sans-600-normal-B9e8oLYv.woff   21.67 kB
+public/build/assets/fonts-C9MNnjVw.css                          2.35 kB Göé gzip:  0.38 kB
+public/build/assets/app-tnG_ofOR.css                           76.89 kB Göé gzip: 14.64 kB
+public/build/assets/app-BXlwC6TO.js                             1.22 kB Göé gzip:  0.43 kB
+
+[32mG£ô built in 731ms[39m

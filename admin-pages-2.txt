@@ -1,0 +1,2018 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Payments - Tuition Hub Admin</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100">
+
+<div class="min-h-screen">
+
+    <nav class="bg-white border-b shadow-sm">
+
+        <div class="max-w-7xl mx-auto px-6 py-4 flex flex-wrap justify-between gap-4">
+
+            <a
+                href="{{ route('admin.dashboard') }}"
+                class="text-xl font-bold text-indigo-600"
+            >
+                Tuition Hub Admin
+            </a>
+
+            <div class="flex flex-wrap gap-4">
+
+                <a
+                    href="{{ route('admin.teachers.index') }}"
+                    class="text-gray-700"
+                >
+                    Teachers
+                </a>
+
+                <a
+                    href="{{ route('admin.tuitions.index') }}"
+                    class="text-gray-700"
+                >
+                    Tuitions
+                </a>
+
+                <a
+                    href="{{ route('admin.payments.index') }}"
+                    class="text-indigo-600 font-medium"
+                >
+                    Payments
+                </a>
+
+            </div>
+
+        </div>
+
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-6 py-8">
+
+        <h1 class="text-3xl font-bold">
+            Payment Verification
+        </h1>
+
+        <p class="text-gray-500 mt-2">
+            Review subscription payment submissions.
+        </p>
+
+        @if(session('success'))
+
+            <div class="mt-6 bg-green-100 border border-green-200 text-green-700 p-4 rounded-lg">
+                {{ session('success') }}
+            </div>
+
+        @endif
+
+        @if(session('error'))
+
+            <div class="mt-6 bg-red-100 border border-red-200 text-red-700 p-4 rounded-lg">
+                {{ session('error') }}
+            </div>
+
+        @endif
+
+        <form
+            method="GET"
+            action="{{ route('admin.payments.index') }}"
+            class="bg-white border rounded-xl p-5 mt-6"
+        >
+
+            <div class="grid md:grid-cols-3 gap-4">
+
+                <input
+                    type="text"
+                    name="search"
+                    value="{{ request('search') }}"
+                    placeholder="Transaction ID, teacher..."
+                    class="border rounded-lg px-3 py-2"
+                >
+
+                <select
+                    name="status"
+                    class="border rounded-lg px-3 py-2"
+                >
+
+                    <option value="">
+                        All Status
+                    </option>
+
+                    @foreach([
+                        'pending' => 'Pending',
+                        'paid' => 'Paid',
+                        'failed' => 'Failed',
+                        'cancelled' => 'Cancelled',
+                        'refunded' => 'Refunded',
+                    ] as $value => $label)
+
+                        <option
+                            value="{{ $value }}"
+                            @selected(
+                                request('status') === $value
+                            )
+                        >
+                            {{ $label }}
+                        </option>
+
+                    @endforeach
+
+                </select>
+
+                <button
+                    class="bg-indigo-600 text-white rounded-lg px-4 py-2"
+                >
+                    Filter
+                </button>
+
+            </div>
+
+        </form>
+
+        <div class="space-y-5 mt-6">
+
+            @forelse($payments as $payment)
+
+                <div class="bg-white border rounded-xl shadow-sm p-6">
+
+                    <div class="flex flex-col lg:flex-row lg:justify-between gap-6">
+
+                        <div class="flex-1">
+
+                            <div class="flex flex-wrap items-center gap-3">
+
+                                <h2 class="text-xl font-bold">
+                                    {{ $payment->user?->name ?? 'Teacher' }}
+                                </h2>
+
+                                <span class="
+                                    text-xs px-3 py-1 rounded-full
+
+                                    @if($payment->status === 'paid')
+                                        bg-green-100 text-green-700
+                                    @elseif($payment->status === 'pending')
+                                        bg-yellow-100 text-yellow-700
+                                    @else
+                                        bg-red-100 text-red-700
+                                    @endif
+                                ">
+                                    {{ strtoupper($payment->status) }}
+                                </span>
+
+                            </div>
+
+                            <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-5 text-sm">
+
+                                <div>
+                                    <p class="text-gray-500">
+                                        Plan
+                                    </p>
+
+                                    <p class="font-medium">
+                                        {{ $payment->subscription?->plan?->name ?? 'N/A' }}
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <p class="text-gray-500">
+                                        Amount
+                                    </p>
+
+                                    <p class="font-medium">
+                                        ৳{{ number_format((float) $payment->amount) }}
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <p class="text-gray-500">
+                                        Payment Method
+                                    </p>
+
+                                    <p class="font-medium">
+                                        {{ strtoupper($payment->payment_method ?? 'N/A') }}
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <p class="text-gray-500">
+                                        Transaction ID
+                                    </p>
+
+                                    <p class="font-medium">
+                                        {{ $payment->transaction_id }}
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <p class="text-gray-500">
+                                        Sender Number
+                                    </p>
+
+                                    <p class="font-medium">
+                                        {{ data_get(
+                                            $payment->gateway_response,
+                                            'sender_number',
+                                            'N/A'
+                                        ) }}
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <p class="text-gray-500">
+                                        Submitted
+                                    </p>
+
+                                    <p class="font-medium">
+                                        {{ $payment->created_at->format(
+                                            'd M Y, h:i A'
+                                        ) }}
+                                    </p>
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                        @if($payment->status === 'pending')
+
+                            <div class="lg:w-48">
+
+                                <form
+                                    method="POST"
+                                    action="{{ route(
+                                        'admin.payments.approve',
+                                        $payment
+                                    ) }}"
+                                >
+
+                                    @csrf
+                                    @method('PATCH')
+
+                                    <button
+                                        type="submit"
+                                        onclick="return confirm('Approve this payment?')"
+                                        class="w-full bg-green-600 text-white px-4 py-3 rounded-lg"
+                                    >
+                                        Approve
+                                    </button>
+
+                                </form>
+
+                                <form
+                                    method="POST"
+                                    action="{{ route(
+                                        'admin.payments.reject',
+                                        $payment
+                                    ) }}"
+                                    class="mt-3"
+                                >
+
+                                    @csrf
+                                    @method('PATCH')
+
+                                    <button
+                                        type="submit"
+                                        onclick="return confirm('Reject this payment?')"
+                                        class="w-full border border-red-500 text-red-600 px-4 py-3 rounded-lg"
+                                    >
+                                        Reject
+                                    </button>
+
+                                </form>
+
+                            </div>
+
+                        @endif
+
+                    </div>
+
+                </div>
+
+            @empty
+
+                <div class="bg-white rounded-xl p-10 text-center text-gray-500">
+                    No payments found.
+                </div>
+
+            @endforelse
+
+        </div>
+
+        @if($payments->hasPages())
+
+            <div class="mt-8">
+                {{ $payments->links() }}
+            </div>
+
+        @endif
+
+    </main>
+
+</div>
+
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Subscription Plans - Tuition Hub Admin</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100">
+
+<div class="min-h-screen">
+
+    <nav class="bg-white border-b shadow-sm">
+
+        <div class="max-w-7xl mx-auto px-6 py-4 flex flex-wrap justify-between gap-4">
+
+            <a
+                href="{{ route('admin.dashboard') }}"
+                class="text-xl font-bold text-indigo-600"
+            >
+                Tuition Hub Admin
+            </a>
+
+            <div class="flex flex-wrap items-center gap-4">
+
+                <a
+                    href="{{ route('admin.teachers.index') }}"
+                    class="text-gray-700 hover:text-indigo-600"
+                >
+                    Teachers
+                </a>
+
+                <a
+                    href="{{ route('admin.tuitions.index') }}"
+                    class="text-gray-700 hover:text-indigo-600"
+                >
+                    Tuitions
+                </a>
+
+                <a
+                    href="{{ route('admin.payments.index') }}"
+                    class="text-gray-700 hover:text-indigo-600"
+                >
+                    Payments
+                </a>
+
+                <a
+                    href="{{ route('admin.subscription-plans.index') }}"
+                    class="text-indigo-600 font-medium"
+                >
+                    Plans
+                </a>
+
+            </div>
+
+        </div>
+
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-6 py-8">
+
+        <div class="mb-8">
+
+            <h1 class="text-3xl font-bold">
+                Subscription Plans
+            </h1>
+
+            <p class="text-gray-500 mt-2">
+                Manage pricing, duration and application limits.
+            </p>
+
+        </div>
+
+        @if(session('success'))
+
+            <div class="mb-6 bg-green-100 border border-green-200 text-green-700 p-4 rounded-lg">
+                {{ session('success') }}
+            </div>
+
+        @endif
+
+        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+            @forelse($plans as $plan)
+
+                <div class="
+                    bg-white rounded-2xl border shadow-sm p-6
+
+                    @if($plan->is_featured)
+                        border-indigo-500
+                    @endif
+                ">
+
+                    <div class="flex justify-between gap-3">
+
+                        <div>
+
+                            <h2 class="text-2xl font-bold">
+                                {{ $plan->name }}
+                            </h2>
+
+                            <p class="text-xs text-gray-500 mt-1">
+                                {{ $plan->slug }}
+                            </p>
+
+                        </div>
+
+                        <div>
+
+                            @if($plan->status)
+
+                                <span class="bg-green-100 text-green-700 text-xs px-3 py-1 rounded-full">
+                                    ACTIVE
+                                </span>
+
+                            @else
+
+                                <span class="bg-red-100 text-red-700 text-xs px-3 py-1 rounded-full">
+                                    INACTIVE
+                                </span>
+
+                            @endif
+
+                        </div>
+
+                    </div>
+
+                    @if($plan->is_featured)
+
+                        <div class="mt-3">
+                            <span class="bg-indigo-100 text-indigo-700 text-xs px-3 py-1 rounded-full">
+                                FEATURED
+                            </span>
+                        </div>
+
+                    @endif
+
+                    <p class="text-sm text-gray-500 mt-4 min-h-[40px]">
+                        {{ $plan->description ?? 'No description.' }}
+                    </p>
+
+                    <div class="mt-6">
+
+                        @if((float) $plan->price === 0.0)
+
+                            <span class="text-4xl font-bold">
+                                Free
+                            </span>
+
+                        @else
+
+                            <span class="text-4xl font-bold">
+                                ৳{{ number_format((float) $plan->price) }}
+                            </span>
+
+                        @endif
+
+                    </div>
+
+                    <div class="mt-6 space-y-3 text-sm">
+
+                        <div class="flex justify-between">
+
+                            <span class="text-gray-500">
+                                Duration
+                            </span>
+
+                            <strong>
+                                {{ $plan->duration_days }} Days
+                            </strong>
+
+                        </div>
+
+                        <div class="flex justify-between">
+
+                            <span class="text-gray-500">
+                                Applications
+                            </span>
+
+                            <strong>
+
+                                @if($plan->application_limit === null)
+
+                                    Unlimited
+
+                                @else
+
+                                    {{ $plan->application_limit }}
+
+                                @endif
+
+                            </strong>
+
+                        </div>
+
+                        <div class="flex justify-between">
+
+                            <span class="text-gray-500">
+                                Sort Order
+                            </span>
+
+                            <strong>
+                                {{ $plan->sort_order }}
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3 mt-8">
+
+                        <a
+                            href="{{ route(
+                                'admin.subscription-plans.edit',
+                                $plan
+                            ) }}"
+                            class="text-center bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-3 rounded-lg"
+                        >
+                            Edit
+                        </a>
+
+                        <form
+                            method="POST"
+                            action="{{ route(
+                                'admin.subscription-plans.toggle',
+                                $plan
+                            ) }}"
+                        >
+
+                            @csrf
+                            @method('PATCH')
+
+                            <button
+                                type="submit"
+                                class="
+                                    w-full px-4 py-3 rounded-lg border
+
+                                    @if($plan->status)
+                                        border-red-500 text-red-600
+                                    @else
+                                        border-green-500 text-green-600
+                                    @endif
+                                "
+                            >
+                                {{ $plan->status ? 'Disable' : 'Enable' }}
+                            </button>
+
+                        </form>
+
+                    </div>
+
+                </div>
+
+            @empty
+
+                <div class="md:col-span-2 lg:col-span-3 bg-white rounded-xl p-10 text-center text-gray-500">
+                    No subscription plans found.
+                </div>
+
+            @endforelse
+
+        </div>
+
+    </main>
+
+</div>
+
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Edit Plan - Tuition Hub Admin</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100">
+
+<div class="min-h-screen">
+
+    <nav class="bg-white border-b shadow-sm">
+
+        <div class="max-w-5xl mx-auto px-6 py-4 flex justify-between">
+
+            <a
+                href="{{ route('admin.dashboard') }}"
+                class="text-xl font-bold text-indigo-600"
+            >
+                Tuition Hub Admin
+            </a>
+
+            <a
+                href="{{ route('admin.subscription-plans.index') }}"
+                class="text-indigo-600"
+            >
+                Subscription Plans
+            </a>
+
+        </div>
+
+    </nav>
+
+    <main class="max-w-3xl mx-auto px-6 py-8">
+
+        <div class="mb-6">
+
+            <h1 class="text-3xl font-bold">
+                Edit Subscription Plan
+            </h1>
+
+            <p class="text-gray-500 mt-2">
+                {{ $plan->name }} — {{ $plan->slug }}
+            </p>
+
+        </div>
+
+        @if($errors->any())
+
+            <div class="mb-6 bg-red-100 border border-red-200 text-red-700 p-4 rounded-lg">
+
+                <ul class="list-disc pl-5">
+
+                    @foreach($errors->all() as $error)
+
+                        <li>
+                            {{ $error }}
+                        </li>
+
+                    @endforeach
+
+                </ul>
+
+            </div>
+
+        @endif
+
+        <form
+            method="POST"
+            action="{{ route(
+                'admin.subscription-plans.update',
+                $plan
+            ) }}"
+            class="bg-white border rounded-xl shadow-sm p-6"
+        >
+
+            @csrf
+            @method('PUT')
+
+            <div>
+
+                <label class="block text-sm font-medium mb-2">
+                    Plan Name
+                </label>
+
+                <input
+                    type="text"
+                    name="name"
+                    value="{{ old('name', $plan->name) }}"
+                    class="w-full border rounded-lg px-3 py-3"
+                    required
+                >
+
+            </div>
+
+            <div class="mt-5">
+
+                <label class="block text-sm font-medium mb-2">
+                    Description
+                </label>
+
+                <textarea
+                    name="description"
+                    rows="4"
+                    class="w-full border rounded-lg px-3 py-3"
+                >{{ old('description', $plan->description) }}</textarea>
+
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-5 mt-5">
+
+                <div>
+
+                    <label class="block text-sm font-medium mb-2">
+                        Price (BDT)
+                    </label>
+
+                    <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        name="price"
+                        value="{{ old('price', $plan->price) }}"
+                        class="w-full border rounded-lg px-3 py-3"
+                        required
+                    >
+
+                </div>
+
+                <div>
+
+                    <label class="block text-sm font-medium mb-2">
+                        Duration (Days)
+                    </label>
+
+                    <input
+                        type="number"
+                        min="1"
+                        name="duration_days"
+                        value="{{ old(
+                            'duration_days',
+                            $plan->duration_days
+                        ) }}"
+                        class="w-full border rounded-lg px-3 py-3"
+                        required
+                    >
+
+                </div>
+
+                <div>
+
+                    <label class="block text-sm font-medium mb-2">
+                        Application Limit
+                    </label>
+
+                    <input
+                        type="number"
+                        min="1"
+                        name="application_limit"
+                        value="{{ old(
+                            'application_limit',
+                            $plan->application_limit
+                        ) }}"
+                        placeholder="Leave blank for unlimited"
+                        class="w-full border rounded-lg px-3 py-3"
+                    >
+
+                    <p class="text-xs text-gray-500 mt-1">
+                        Leave blank for unlimited applications.
+                    </p>
+
+                </div>
+
+                <div>
+
+                    <label class="block text-sm font-medium mb-2">
+                        Sort Order
+                    </label>
+
+                    <input
+                        type="number"
+                        min="0"
+                        name="sort_order"
+                        value="{{ old(
+                            'sort_order',
+                            $plan->sort_order
+                        ) }}"
+                        class="w-full border rounded-lg px-3 py-3"
+                        required
+                    >
+
+                </div>
+
+            </div>
+
+            <div class="grid sm:grid-cols-2 gap-5 mt-6">
+
+                <label class="border rounded-lg p-4 flex items-center gap-3">
+
+                    <input
+                        type="checkbox"
+                        name="is_featured"
+                        value="1"
+                        @checked(
+                            old(
+                                'is_featured',
+                                $plan->is_featured
+                            )
+                        )
+                    >
+
+                    <div>
+
+                        <p class="font-medium">
+                            Featured Plan
+                        </p>
+
+                        <p class="text-xs text-gray-500">
+                            Highlight this plan to teachers.
+                        </p>
+
+                    </div>
+
+                </label>
+
+                <label class="border rounded-lg p-4 flex items-center gap-3">
+
+                    <input
+                        type="checkbox"
+                        name="status"
+                        value="1"
+                        @checked(
+                            old(
+                                'status',
+                                $plan->status
+                            )
+                        )
+                    >
+
+                    <div>
+
+                        <p class="font-medium">
+                            Active Plan
+                        </p>
+
+                        <p class="text-xs text-gray-500">
+                            Allow teachers to select this plan.
+                        </p>
+
+                    </div>
+
+                </label>
+
+            </div>
+
+            <div class="flex justify-end gap-3 mt-8">
+
+                <a
+                    href="{{ route('admin.subscription-plans.index') }}"
+                    class="border px-5 py-3 rounded-lg"
+                >
+                    Cancel
+                </a>
+
+                <button
+                    type="submit"
+                    class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg"
+                >
+                    Save Changes
+                </button>
+
+            </div>
+
+        </form>
+
+    </main>
+
+</div>
+
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Payment Settings - Tuition Hub</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100">
+
+<div class="min-h-screen">
+
+    <nav class="bg-white border-b shadow-sm">
+
+        <div class="max-w-5xl mx-auto px-6 py-4 flex justify-between">
+
+            <a
+                href="{{ route('admin.dashboard') }}"
+                class="text-xl font-bold text-indigo-600"
+            >
+                Tuition Hub Admin
+            </a>
+
+            <a
+                href="{{ route('admin.payments.index') }}"
+                class="text-gray-700"
+            >
+                Payments
+            </a>
+
+        </div>
+
+    </nav>
+
+    <main class="max-w-3xl mx-auto px-6 py-8">
+
+        <div class="mb-7">
+
+            <h1 class="text-3xl font-bold">
+                Payment Settings
+            </h1>
+
+            <p class="text-gray-500 mt-2">
+                Configure the payment accounts teachers will use for subscription payments.
+            </p>
+
+        </div>
+
+        @if(session('success'))
+
+            <div class="mb-6 bg-green-100 border border-green-200 text-green-700 p-4 rounded-lg">
+                {{ session('success') }}
+            </div>
+
+        @endif
+
+        @if($errors->any())
+
+            <div class="mb-6 bg-red-100 border border-red-200 text-red-700 p-4 rounded-lg">
+
+                <ul class="list-disc pl-5">
+
+                    @foreach($errors->all() as $error)
+
+                        <li>
+                            {{ $error }}
+                        </li>
+
+                    @endforeach
+
+                </ul>
+
+            </div>
+
+        @endif
+
+        <form
+            method="POST"
+            action="{{ route('admin.payment-settings.update') }}"
+            class="space-y-6"
+        >
+
+            @csrf
+            @method('PUT')
+
+            {{-- bKash --}}
+            <div class="bg-white border rounded-xl p-6">
+
+                <div class="flex items-center justify-between gap-4">
+
+                    <div>
+
+                        <h2 class="text-xl font-bold">
+                            bKash
+                        </h2>
+
+                        <p class="text-sm text-gray-500 mt-1">
+                            Configure bKash payment receiving account.
+                        </p>
+
+                    </div>
+
+                    <label class="flex items-center gap-2">
+
+                        <input
+                            type="checkbox"
+                            name="bkash_enabled"
+                            value="1"
+                            @checked(
+                                old(
+                                    'bkash_enabled',
+                                    $setting->bkash_enabled
+                                )
+                            )
+                        >
+
+                        <span class="text-sm font-medium">
+                            Enabled
+                        </span>
+
+                    </label>
+
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-5 mt-6">
+
+                    <div>
+
+                        <label class="block text-sm font-medium mb-2">
+                            bKash Number
+                        </label>
+
+                        <input
+                            type="text"
+                            name="bkash_number"
+                            value="{{ old(
+                                'bkash_number',
+                                $setting->bkash_number
+                            ) }}"
+                            placeholder="01XXXXXXXXX"
+                            class="w-full border rounded-lg px-4 py-3"
+                        >
+
+                    </div>
+
+                    <div>
+
+                        <label class="block text-sm font-medium mb-2">
+                            Account Type
+                        </label>
+
+                        <select
+                            name="bkash_account_type"
+                            class="w-full border rounded-lg px-4 py-3"
+                        >
+
+                            <option value="">
+                                Select
+                            </option>
+
+                            <option
+                                value="personal"
+                                @selected(
+                                    old(
+                                        'bkash_account_type',
+                                        $setting->bkash_account_type
+                                    ) === 'personal'
+                                )
+                            >
+                                Personal
+                            </option>
+
+                            <option
+                                value="merchant"
+                                @selected(
+                                    old(
+                                        'bkash_account_type',
+                                        $setting->bkash_account_type
+                                    ) === 'merchant'
+                                )
+                            >
+                                Merchant
+                            </option>
+
+                            <option
+                                value="agent"
+                                @selected(
+                                    old(
+                                        'bkash_account_type',
+                                        $setting->bkash_account_type
+                                    ) === 'agent'
+                                )
+                            >
+                                Agent
+                            </option>
+
+                        </select>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            {{-- Nagad --}}
+            <div class="bg-white border rounded-xl p-6">
+
+                <div class="flex items-center justify-between gap-4">
+
+                    <div>
+
+                        <h2 class="text-xl font-bold">
+                            Nagad
+                        </h2>
+
+                        <p class="text-sm text-gray-500 mt-1">
+                            Configure Nagad payment receiving account.
+                        </p>
+
+                    </div>
+
+                    <label class="flex items-center gap-2">
+
+                        <input
+                            type="checkbox"
+                            name="nagad_enabled"
+                            value="1"
+                            @checked(
+                                old(
+                                    'nagad_enabled',
+                                    $setting->nagad_enabled
+                                )
+                            )
+                        >
+
+                        <span class="text-sm font-medium">
+                            Enabled
+                        </span>
+
+                    </label>
+
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-5 mt-6">
+
+                    <div>
+
+                        <label class="block text-sm font-medium mb-2">
+                            Nagad Number
+                        </label>
+
+                        <input
+                            type="text"
+                            name="nagad_number"
+                            value="{{ old(
+                                'nagad_number',
+                                $setting->nagad_number
+                            ) }}"
+                            placeholder="01XXXXXXXXX"
+                            class="w-full border rounded-lg px-4 py-3"
+                        >
+
+                    </div>
+
+                    <div>
+
+                        <label class="block text-sm font-medium mb-2">
+                            Account Type
+                        </label>
+
+                        <select
+                            name="nagad_account_type"
+                            class="w-full border rounded-lg px-4 py-3"
+                        >
+
+                            <option value="">
+                                Select
+                            </option>
+
+                            <option
+                                value="personal"
+                                @selected(
+                                    old(
+                                        'nagad_account_type',
+                                        $setting->nagad_account_type
+                                    ) === 'personal'
+                                )
+                            >
+                                Personal
+                            </option>
+
+                            <option
+                                value="merchant"
+                                @selected(
+                                    old(
+                                        'nagad_account_type',
+                                        $setting->nagad_account_type
+                                    ) === 'merchant'
+                                )
+                            >
+                                Merchant
+                            </option>
+
+                            <option
+                                value="agent"
+                                @selected(
+                                    old(
+                                        'nagad_account_type',
+                                        $setting->nagad_account_type
+                                    ) === 'agent'
+                                )
+                            >
+                                Agent
+                            </option>
+
+                        </select>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            {{-- Instructions --}}
+            <div class="bg-white border rounded-xl p-6">
+
+                <label class="block text-sm font-medium mb-2">
+                    Payment Instructions
+                </label>
+
+                <textarea
+                    name="payment_instruction"
+                    rows="6"
+                    placeholder="Example: Send the exact subscription amount and enter the correct transaction ID."
+                    class="w-full border rounded-lg px-4 py-3"
+                >{{ old(
+                    'payment_instruction',
+                    $setting->payment_instruction
+                ) }}</textarea>
+
+            </div>
+
+            <button
+                type="submit"
+                class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg"
+            >
+                Save Payment Settings
+            </button>
+
+        </form>
+
+    </main>
+
+</div>
+
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Complaints - Tuition Hub</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100">
+
+<main class="max-w-7xl mx-auto px-6 py-8">
+
+    <div>
+
+        <h1 class="text-3xl font-bold">
+            Complaint Management
+        </h1>
+
+        <p class="text-gray-500 mt-2">
+            Review and resolve platform complaints.
+        </p>
+
+    </div>
+
+    <section class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-7">
+
+        <div class="bg-white border rounded-xl p-5">
+            <p class="text-sm text-gray-500">Open</p>
+            <p class="text-3xl font-bold mt-2">
+                {{ $openCount }}
+            </p>
+        </div>
+
+        <div class="bg-white border rounded-xl p-5">
+            <p class="text-sm text-gray-500">Investigating</p>
+            <p class="text-3xl font-bold mt-2">
+                {{ $investigatingCount }}
+            </p>
+        </div>
+
+        <div class="bg-white border rounded-xl p-5">
+            <p class="text-sm text-gray-500">Resolved</p>
+            <p class="text-3xl font-bold mt-2">
+                {{ $resolvedCount }}
+            </p>
+        </div>
+
+        <div class="bg-white border rounded-xl p-5">
+            <p class="text-sm text-gray-500">Rejected</p>
+            <p class="text-3xl font-bold mt-2">
+                {{ $rejectedCount }}
+            </p>
+        </div>
+
+    </section>
+
+    <form
+        method="GET"
+        class="bg-white border rounded-xl p-5 mt-7 grid md:grid-cols-4 gap-4"
+    >
+
+        <input
+            type="text"
+            name="search"
+            value="{{ request('search') }}"
+            placeholder="Complaint ID / user / subject"
+            class="border rounded-lg px-4 py-3"
+        >
+
+        <select
+            name="status"
+            class="border rounded-lg px-4 py-3"
+        >
+
+            <option value="">
+                All Status
+            </option>
+
+            <option value="open">
+                Open
+            </option>
+
+            <option value="investigating">
+                Investigating
+            </option>
+
+            <option value="resolved">
+                Resolved
+            </option>
+
+            <option value="rejected">
+                Rejected
+            </option>
+
+        </select>
+
+        <select
+            name="category"
+            class="border rounded-lg px-4 py-3"
+        >
+
+            <option value="">
+                All Categories
+            </option>
+
+            <option value="behavior">Behavior</option>
+            <option value="payment">Payment</option>
+            <option value="attendance">Attendance</option>
+            <option value="misinformation">Misinformation</option>
+            <option value="harassment">Harassment</option>
+            <option value="safety">Safety</option>
+            <option value="other">Other</option>
+
+        </select>
+
+        <button
+            type="submit"
+            class="bg-indigo-600 text-white rounded-lg"
+        >
+            Filter
+        </button>
+
+    </form>
+
+    <div class="space-y-5 mt-7">
+
+        @forelse($complaints as $complaint)
+
+            <article class="bg-white border rounded-xl p-6">
+
+                <div class="flex flex-col lg:flex-row lg:justify-between gap-6">
+
+                    <div class="flex-1">
+
+                        <p class="text-xs text-gray-400">
+                            Complaint #{{ $complaint->id }}
+                        </p>
+
+                        <h2 class="text-xl font-bold mt-1">
+                            {{ $complaint->subject }}
+                        </h2>
+
+                        <div class="text-sm text-gray-600 mt-4 space-y-1">
+
+                            <p>
+                                <strong>Reporter:</strong>
+                                {{ $complaint->reporter?->name }}
+                            </p>
+
+                            <p>
+                                <strong>Reported User:</strong>
+                                {{ $complaint->reportedUser?->name ?? 'N/A' }}
+                            </p>
+
+                            <p>
+                                <strong>Category:</strong>
+                                {{ ucfirst($complaint->category) }}
+                            </p>
+
+                            <p>
+                                <strong>Status:</strong>
+                                {{ ucfirst($complaint->status) }}
+                            </p>
+
+                        </div>
+
+                        <div class="mt-4 bg-gray-50 rounded-lg p-4 whitespace-pre-line">{{ $complaint->description }}</div>
+
+                    </div>
+
+                    <form
+                        method="POST"
+                        action="{{ route(
+                            'admin.complaints.update',
+                            $complaint
+                        ) }}"
+                        class="lg:w-96"
+                    >
+
+                        @csrf
+                        @method('PATCH')
+
+                        <label class="block text-sm font-medium mb-2">
+                            Status
+                        </label>
+
+                        <select
+                            name="status"
+                            class="w-full border rounded-lg px-4 py-3"
+                        >
+
+                            @foreach([
+                                'open',
+                                'investigating',
+                                'resolved',
+                                'rejected',
+                            ] as $status)
+
+                                <option
+                                    value="{{ $status }}"
+                                    @selected(
+                                        $complaint->status === $status
+                                    )
+                                >
+                                    {{ ucfirst($status) }}
+                                </option>
+
+                            @endforeach
+
+                        </select>
+
+                        <label class="block text-sm font-medium mt-4 mb-2">
+                            Admin Note
+                        </label>
+
+                        <textarea
+                            name="admin_note"
+                            rows="5"
+                            class="w-full border rounded-lg px-4 py-3"
+                        >{{ $complaint->admin_note }}</textarea>
+
+                        <button
+                            type="submit"
+                            class="w-full bg-indigo-600 text-white px-5 py-3 rounded-lg mt-4"
+                        >
+                            Update Complaint
+                        </button>
+
+                    </form>
+
+                </div>
+
+            </article>
+
+        @empty
+
+            <div class="bg-white border rounded-xl p-12 text-center text-gray-500">
+                No complaints found.
+            </div>
+
+        @endforelse
+
+    </div>
+
+    <div class="mt-6">
+        {{ $complaints->links() }}
+    </div>
+
+</main>
+
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Audit Logs - Tuition Hub</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100">
+
+<div class="min-h-screen">
+
+    <nav class="bg-white border-b">
+
+        <div class="max-w-7xl mx-auto px-6 py-4 flex flex-wrap items-center justify-between gap-4">
+
+            <a
+                href="{{ route('admin.dashboard') }}"
+                class="text-xl font-bold text-indigo-600"
+            >
+                Tuition Hub Admin
+            </a>
+
+            <div class="flex flex-wrap gap-5 text-sm">
+
+                <a
+                    href="{{ route('admin.dashboard') }}"
+                    class="text-gray-600"
+                >
+                    Dashboard
+                </a>
+
+                <a
+                    href="{{ route('admin.users.index') }}"
+                    class="text-gray-600"
+                >
+                    Users
+                </a>
+
+                <a
+                    href="{{ route('admin.tuitions.index') }}"
+                    class="text-gray-600"
+                >
+                    Tuitions
+                </a>
+
+                <a
+                    href="{{ route('admin.assignments.index') }}"
+                    class="text-gray-600"
+                >
+                    Assignments
+                </a>
+
+                <a
+                    href="{{ route('admin.complaints.index') }}"
+                    class="text-gray-600"
+                >
+                    Complaints
+                </a>
+
+                <a
+                    href="{{ route('admin.audit-logs.index') }}"
+                    class="text-indigo-600 font-semibold"
+                >
+                    Audit Logs
+                </a>
+
+            </div>
+
+        </div>
+
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-6 py-8">
+
+        <div>
+
+            <h1 class="text-3xl font-bold">
+                Admin Audit Logs
+            </h1>
+
+            <p class="text-gray-500 mt-2">
+                Permanent history of administrative changes across Tuition Hub.
+            </p>
+
+        </div>
+
+        <section class="grid sm:grid-cols-3 gap-5 mt-7">
+
+            <div class="bg-white border rounded-xl p-5">
+
+                <p class="text-sm text-gray-500">
+                    Total Actions
+                </p>
+
+                <p class="text-3xl font-bold mt-2">
+                    {{ number_format(
+                        $totalLogs
+                    ) }}
+                </p>
+
+            </div>
+
+            <div class="bg-white border rounded-xl p-5">
+
+                <p class="text-sm text-gray-500">
+                    Actions Today
+                </p>
+
+                <p class="text-3xl font-bold mt-2">
+                    {{ number_format(
+                        $todayLogs
+                    ) }}
+                </p>
+
+            </div>
+
+            <div class="bg-white border rounded-xl p-5">
+
+                <p class="text-sm text-gray-500">
+                    Active Admins — 7 Days
+                </p>
+
+                <p class="text-3xl font-bold mt-2">
+                    {{ number_format(
+                        $recentAdminCount
+                    ) }}
+                </p>
+
+            </div>
+
+        </section>
+
+        <form
+            method="GET"
+            action="{{ route('admin.audit-logs.index') }}"
+            class="bg-white border rounded-xl p-5 mt-7"
+        >
+
+            <div class="grid md:grid-cols-5 gap-4">
+
+                <input
+                    type="text"
+                    name="search"
+                    value="{{ request('search') }}"
+                    placeholder="Action / route / target..."
+                    class="border rounded-lg px-4 py-3"
+                >
+
+                <select
+                    name="admin"
+                    class="border rounded-lg px-4 py-3"
+                >
+
+                    <option value="">
+                        All Admins
+                    </option>
+
+                    @foreach($admins as $admin)
+
+                        <option
+                            value="{{ $admin->id }}"
+                            @selected(
+                                (string) request('admin') ===
+                                (string) $admin->id
+                            )
+                        >
+                            {{ $admin->name }}
+                        </option>
+
+                    @endforeach
+
+                </select>
+
+                <select
+                    name="action"
+                    class="border rounded-lg px-4 py-3"
+                >
+
+                    <option value="">
+                        All Actions
+                    </option>
+
+                    @foreach($actions as $action)
+
+                        <option
+                            value="{{ $action }}"
+                            @selected(
+                                request('action') ===
+                                $action
+                            )
+                        >
+                            {{ $action }}
+                        </option>
+
+                    @endforeach
+
+                </select>
+
+                <select
+                    name="method"
+                    class="border rounded-lg px-4 py-3"
+                >
+
+                    <option value="">
+                        All Methods
+                    </option>
+
+                    @foreach([
+                        'POST',
+                        'PUT',
+                        'PATCH',
+                        'DELETE',
+                    ] as $method)
+
+                        <option
+                            value="{{ $method }}"
+                            @selected(
+                                request('method') ===
+                                $method
+                            )
+                        >
+                            {{ $method }}
+                        </option>
+
+                    @endforeach
+
+                </select>
+
+                <button
+                    type="submit"
+                    class="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-5 py-3"
+                >
+                    Filter
+                </button>
+
+            </div>
+
+            @if(
+                request()->filled('search') ||
+                request()->filled('admin') ||
+                request()->filled('action') ||
+                request()->filled('method')
+            )
+
+                <div class="mt-4">
+
+                    <a
+                        href="{{ route(
+                            'admin.audit-logs.index'
+                        ) }}"
+                        class="text-sm text-indigo-600"
+                    >
+                        Clear Filters
+                    </a>
+
+                </div>
+
+            @endif
+
+        </form>
+
+        <div class="bg-white border rounded-xl overflow-hidden mt-7">
+
+            <div class="overflow-x-auto">
+
+                <table class="min-w-full text-sm">
+
+                    <thead class="bg-gray-50">
+
+                    <tr class="text-left">
+
+                        <th class="px-5 py-4">
+                            Date
+                        </th>
+
+                        <th class="px-5 py-4">
+                            Admin
+                        </th>
+
+                        <th class="px-5 py-4">
+                            Action
+                        </th>
+
+                        <th class="px-5 py-4">
+                            Target
+                        </th>
+
+                        <th class="px-5 py-4">
+                            Method
+                        </th>
+
+                        <th class="px-5 py-4">
+                            Details
+                        </th>
+
+                    </tr>
+
+                    </thead>
+
+                    <tbody class="divide-y">
+
+                    @forelse($logs as $log)
+
+                        <tr class="align-top">
+
+                            <td class="px-5 py-4 whitespace-nowrap">
+
+                                <p class="font-medium">
+                                    {{ $log
+                                        ->created_at
+                                        ?->format(
+                                            'd M Y'
+                                        )
+                                    }}
+                                </p>
+
+                                <p class="text-xs text-gray-500 mt-1">
+                                    {{ $log
+                                        ->created_at
+                                        ?->format(
+                                            'h:i:s A'
+                                        )
+                                    }}
+                                </p>
+
+                            </td>
+
+                            <td class="px-5 py-4">
+
+                                <p class="font-medium">
+                                    {{ $log
+                                        ->actor
+                                        ?->name ?? 'Deleted Admin'
+                                    }}
+                                </p>
+
+                                <p class="text-xs text-gray-500 mt-1">
+                                    {{ $log
+                                        ->actor
+                                        ?->email ?? ''
+                                    }}
+                                </p>
+
+                            </td>
+
+                            <td class="px-5 py-4">
+
+                                <p class="font-semibold">
+                                    {{ $log->action }}
+                                </p>
+
+                                @if($log->route_name)
+
+                                    <p class="text-xs text-gray-500 mt-1">
+                                        {{ $log->route_name }}
+                                    </p>
+
+                                @endif
+
+                            </td>
+
+                            <td class="px-5 py-4">
+
+                                @if($log->target_type)
+
+                                    <p class="font-medium">
+                                        {{ $log->target_type }}
+                                    </p>
+
+                                    @if($log->target_id)
+
+                                        <p class="text-xs text-gray-500 mt-1">
+                                            ID:
+                                            {{ $log->target_id }}
+                                        </p>
+
+                                    @endif
+
+                                @else
+
+                                    <span class="text-gray-400">
+                                        —
+                                    </span>
+
+                                @endif
+
+                            </td>
+
+                            <td class="px-5 py-4">
+
+                                <span class="
+                                    inline-flex px-2.5 py-1 rounded-full text-xs font-semibold
+
+                                    @if($log->method === 'DELETE')
+                                        bg-red-100 text-red-700
+                                    @elseif($log->method === 'POST')
+                                        bg-green-100 text-green-700
+                                    @else
+                                        bg-blue-100 text-blue-700
+                                    @endif
+                                ">
+                                    {{ $log->method }}
+                                </span>
+
+                            </td>
+
+                            <td class="px-5 py-4">
+
+                                @if(
+                                    is_array($log->metadata) &&
+                                    count($log->metadata)
+                                )
+
+                                    <div class="space-y-1">
+
+                                        @foreach(
+                                            $log->metadata
+                                            as $key => $value
+                                        )
+
+                                            <p>
+                                                <span class="text-gray-500">
+                                                    {{ ucfirst(
+                                                        str_replace(
+                                                            '_',
+                                                            ' ',
+                                                            $key
+                                                        )
+                                                    ) }}:
+                                                </span>
+
+                                                <span class="font-medium">
+                                                    {{ is_bool($value)
+                                                        ? ($value ? 'Yes' : 'No')
+                                                        : (
+                                                            $value === null
+                                                                ? 'N/A'
+                                                                : $value
+                                                        )
+                                                    }}
+                                                </span>
+                                            </p>
+
+                                        @endforeach
+
+                                    </div>
+
+                                @else
+
+                                    <span class="text-gray-400">
+                                        —
+                                    </span>
+
+                                @endif
+
+                            </td>
+
+                        </tr>
+
+                    @empty
+
+                        <tr>
+
+                            <td
+                                colspan="6"
+                                class="px-6 py-12 text-center text-gray-500"
+                            >
+                                No audit logs found.
+                            </td>
+
+                        </tr>
+
+                    @endforelse
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+        <div class="mt-6">
+            {{ $logs->links() }}
+        </div>
+
+    </main>
+
+</div>
+
+</body>
+</html>

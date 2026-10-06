@@ -1,0 +1,2341 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Subscription - Tuition Hub</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100">
+
+<div class="min-h-screen">
+
+    <nav class="bg-white border-b shadow-sm">
+
+        <div class="max-w-7xl mx-auto px-6 py-4 flex flex-wrap justify-between gap-4">
+
+            <a
+                href="{{ route('teacher.dashboard') }}"
+                class="text-xl font-bold text-indigo-600"
+            >
+                Tuition Hub
+            </a>
+
+            <div class="flex flex-wrap items-center gap-4">
+
+                <a
+                    href="{{ route('teacher.tuitions.index') }}"
+                    class="text-gray-700"
+                >
+                    Find Tuition
+                </a>
+
+                <a
+                    href="{{ route('teacher.profile.edit') }}"
+                    class="text-gray-700"
+                >
+                    Profile
+                </a>
+
+                <a
+                    href="{{ route('teacher.subscription.index') }}"
+                    class="text-indigo-600 font-medium"
+                >
+                    Subscription
+                </a>
+
+            </div>
+
+        </div>
+
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-6 py-8">
+
+        <div>
+
+            <h1 class="text-3xl font-bold">
+                Subscription
+            </h1>
+
+            <p class="text-gray-500 mt-2">
+                Choose, renew or upgrade your tuition application plan.
+            </p>
+
+        </div>
+
+        @if(session('success'))
+
+            <div class="mt-6 bg-green-100 border border-green-200 text-green-700 p-4 rounded-lg">
+                {{ session('success') }}
+            </div>
+
+        @endif
+
+        @if(session('error'))
+
+            <div class="mt-6 bg-red-100 border border-red-200 text-red-700 p-4 rounded-lg">
+                {{ session('error') }}
+            </div>
+
+        @endif
+
+        {{-- Active Subscription --}}
+        @if($activeSubscription)
+
+            <div class="mt-7 bg-indigo-600 text-white rounded-xl p-6">
+
+                <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+
+                    <div>
+
+                        <p class="text-indigo-200 text-sm">
+                            Current Active Plan
+                        </p>
+
+                        <h2 class="text-3xl font-bold mt-1">
+                            {{ $activeSubscription->plan?->name }}
+                        </h2>
+
+                    </div>
+
+                    <div class="grid sm:grid-cols-3 gap-6">
+
+                        <div>
+
+                            <p class="text-indigo-200 text-sm">
+                                Applications Used
+                            </p>
+
+                            <p class="font-bold mt-1">
+
+                                @if(
+                                    $activeSubscription
+                                        ->plan
+                                        ?->application_limit === null
+                                )
+
+                                    Unlimited
+
+                                @else
+
+                                    {{ $activeSubscription->applications_used }}
+                                    /
+                                    {{ $activeSubscription->plan->application_limit }}
+
+                                @endif
+
+                            </p>
+
+                        </div>
+
+                        <div>
+
+                            <p class="text-indigo-200 text-sm">
+                                Started
+                            </p>
+
+                            <p class="font-bold mt-1">
+                                {{ $activeSubscription
+                                    ->starts_at
+                                    ?->format('d M Y') ?? 'N/A'
+                                }}
+                            </p>
+
+                        </div>
+
+                        <div>
+
+                            <p class="text-indigo-200 text-sm">
+                                Expires
+                            </p>
+
+                            <p class="font-bold mt-1">
+                                {{ $activeSubscription
+                                    ->expires_at
+                                    ?->format('d M Y') ?? 'No expiry'
+                                }}
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <div class="mt-5 text-sm text-indigo-100">
+
+                    You may renew the same plan now.
+                    Remaining subscription time will be preserved.
+
+                    @if(
+                        $activeSubscription->plan &&
+                        (float) $activeSubscription->plan->price > 0
+                    )
+                        You can also upgrade to a higher-priced plan.
+                    @endif
+
+                </div>
+
+            </div>
+
+        @else
+
+            <div class="mt-7 bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-xl p-5">
+
+                <h2 class="font-semibold">
+                    No active subscription
+                </h2>
+
+                <p class="text-sm mt-1">
+                    Select a plan below to start applying for tuition opportunities.
+                </p>
+
+            </div>
+
+        @endif
+
+        {{-- Pending Subscription --}}
+        @if($pendingSubscription)
+
+            <div class="mt-6 bg-orange-50 border border-orange-200 rounded-xl p-5">
+
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+
+                    <div>
+
+                        <p class="text-sm text-orange-700">
+                            Pending Subscription
+                        </p>
+
+                        <h2 class="font-bold text-orange-900 mt-1">
+                            {{ $pendingSubscription->plan?->name }}
+                        </h2>
+
+                        <p class="text-sm text-orange-700 mt-1">
+                            Amount:
+                            ৳{{ number_format(
+                                (float) $pendingSubscription->amount,
+                                2
+                            ) }}
+                        </p>
+
+                    </div>
+
+                    @if(
+                        (float) $pendingSubscription->amount > 0
+                    )
+
+                        <a
+                            href="{{ route(
+                                'teacher.payment.create',
+                                $pendingSubscription
+                            ) }}"
+                            class="bg-orange-600 hover:bg-orange-700 text-white px-5 py-3 rounded-lg text-center"
+                        >
+                            Payment Details
+                        </a>
+
+                    @endif
+
+                </div>
+
+            </div>
+
+        @endif
+
+        {{-- Plans --}}
+        <div class="mt-10">
+
+            <h2 class="text-2xl font-bold">
+                Available Plans
+            </h2>
+
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mt-5">
+
+                @foreach($plans as $plan)
+
+                    @php
+                        $isCurrentPlan =
+                            $activeSubscription &&
+                            $activeSubscription->subscription_plan_id === $plan->id;
+
+                        $isUpgrade =
+                            $activeSubscription &&
+                            $activeSubscription->plan &&
+                            $activeSubscription->subscription_plan_id !== $plan->id &&
+                            (float) $plan->price >
+                            (float) $activeSubscription->plan->price;
+
+                        $isDowngrade =
+                            $activeSubscription &&
+                            $activeSubscription->plan &&
+                            $activeSubscription->subscription_plan_id !== $plan->id &&
+                            (float) $plan->price <=
+                            (float) $activeSubscription->plan->price;
+
+                        $hasPending = $pendingSubscription !== null;
+                    @endphp
+
+                    <div class="
+                        bg-white rounded-xl border p-6 shadow-sm relative
+
+                        @if($plan->is_featured)
+                            border-indigo-500
+                        @endif
+                    ">
+
+                        @if($plan->is_featured)
+
+                            <span class="absolute top-4 right-4 bg-indigo-100 text-indigo-700 text-xs px-3 py-1 rounded-full">
+                                POPULAR
+                            </span>
+
+                        @endif
+
+                        @if($isCurrentPlan)
+
+                            <span class="inline-block bg-green-100 text-green-700 text-xs px-3 py-1 rounded-full mb-3">
+                                CURRENT PLAN
+                            </span>
+
+                        @endif
+
+                        <h3 class="text-2xl font-bold">
+                            {{ $plan->name }}
+                        </h3>
+
+                        <p class="text-gray-500 text-sm mt-2 min-h-[40px]">
+                            {{ $plan->description ?? 'Tuition Hub subscription plan.' }}
+                        </p>
+
+                        <div class="mt-6">
+
+                            @if((float) $plan->price === 0.0)
+
+                                <span class="text-4xl font-bold">
+                                    Free
+                                </span>
+
+                            @else
+
+                                <span class="text-4xl font-bold">
+                                    ৳{{ number_format(
+                                        (float) $plan->price
+                                    ) }}
+                                </span>
+
+                            @endif
+
+                        </div>
+
+                        <div class="space-y-3 mt-6 text-sm">
+
+                            <div class="flex justify-between">
+
+                                <span class="text-gray-500">
+                                    Duration
+                                </span>
+
+                                <strong>
+                                    {{ $plan->duration_days }} days
+                                </strong>
+
+                            </div>
+
+                            <div class="flex justify-between">
+
+                                <span class="text-gray-500">
+                                    Application Limit
+                                </span>
+
+                                <strong>
+
+                                    @if(
+                                        $plan->application_limit === null
+                                    )
+
+                                        Unlimited
+
+                                    @else
+
+                                        {{ $plan->application_limit }}
+
+                                    @endif
+
+                                </strong>
+
+                            </div>
+
+                        </div>
+
+                        <div class="mt-7">
+
+                            @if($hasPending)
+
+                                <button
+                                    type="button"
+                                    disabled
+                                    class="w-full bg-gray-200 text-gray-500 px-4 py-3 rounded-lg cursor-not-allowed"
+                                >
+                                    Pending Payment Exists
+                                </button>
+
+                            @elseif($isCurrentPlan)
+
+                                @if((float) $plan->price > 0)
+
+                                    <form
+                                        method="POST"
+                                        action="{{ route(
+                                            'teacher.subscription.subscribe',
+                                            $plan
+                                        ) }}"
+                                    >
+
+                                        @csrf
+
+                                        <button
+                                            type="submit"
+                                            onclick="return confirm('Renew this subscription? Your remaining days will be preserved after payment approval.')"
+                                            class="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-lg"
+                                        >
+                                            Renew Plan
+                                        </button>
+
+                                    </form>
+
+                                @else
+
+                                    <button
+                                        type="button"
+                                        disabled
+                                        class="w-full bg-gray-200 text-gray-500 px-4 py-3 rounded-lg cursor-not-allowed"
+                                    >
+                                        Current Free Plan
+                                    </button>
+
+                                @endif
+
+                            @elseif($isUpgrade)
+
+                                <form
+                                    method="POST"
+                                    action="{{ route(
+                                        'teacher.subscription.subscribe',
+                                        $plan
+                                    ) }}"
+                                >
+
+                                    @csrf
+
+                                    <button
+                                        type="submit"
+                                        onclick="return confirm('Upgrade to this plan? The upgraded plan will become active after payment approval.')"
+                                        class="w-full bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-3 rounded-lg"
+                                    >
+                                        Upgrade to {{ $plan->name }}
+                                    </button>
+
+                                </form>
+
+                            @elseif($isDowngrade)
+
+                                <button
+                                    type="button"
+                                    disabled
+                                    class="w-full bg-gray-100 text-gray-400 px-4 py-3 rounded-lg cursor-not-allowed"
+                                >
+                                    Available After Expiry
+                                </button>
+
+                            @else
+
+                                <form
+                                    method="POST"
+                                    action="{{ route(
+                                        'teacher.subscription.subscribe',
+                                        $plan
+                                    ) }}"
+                                >
+
+                                    @csrf
+
+                                    <button
+                                        type="submit"
+                                        class="w-full bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-3 rounded-lg"
+                                    >
+                                        @if((float) $plan->price === 0.0)
+                                            Activate Free Plan
+                                        @else
+                                            Choose Plan
+                                        @endif
+                                    </button>
+
+                                </form>
+
+                            @endif
+
+                        </div>
+
+                    </div>
+
+                @endforeach
+
+            </div>
+
+        </div>
+
+        {{-- History --}}
+        <div class="mt-12">
+
+            <h2 class="text-2xl font-bold">
+                Subscription History
+            </h2>
+
+            <div class="bg-white border rounded-xl overflow-x-auto mt-5">
+
+                <table class="w-full text-sm">
+
+                    <thead class="bg-gray-50">
+
+                    <tr>
+
+                        <th class="text-left p-4">
+                            Plan
+                        </th>
+
+                        <th class="text-left p-4">
+                            Amount
+                        </th>
+
+                        <th class="text-left p-4">
+                            Status
+                        </th>
+
+                        <th class="text-left p-4">
+                            Started
+                        </th>
+
+                        <th class="text-left p-4">
+                            Expires
+                        </th>
+
+                    </tr>
+
+                    </thead>
+
+                    <tbody class="divide-y">
+
+                    @forelse($subscriptionHistory as $subscription)
+
+                        <tr>
+
+                            <td class="p-4 font-medium">
+                                {{ $subscription->plan?->name ?? 'N/A' }}
+                            </td>
+
+                            <td class="p-4">
+                                ৳{{ number_format(
+                                    (float) $subscription->amount,
+                                    2
+                                ) }}
+                            </td>
+
+                            <td class="p-4">
+
+                                <span class="
+                                    text-xs px-2 py-1 rounded
+
+                                    @if($subscription->status === 'active')
+                                        bg-green-100 text-green-700
+                                    @elseif($subscription->status === 'pending')
+                                        bg-yellow-100 text-yellow-700
+                                    @elseif($subscription->status === 'expired')
+                                        bg-gray-200 text-gray-700
+                                    @elseif($subscription->status === 'cancelled')
+                                        bg-red-100 text-red-700
+                                    @endif
+                                ">
+                                    {{ strtoupper($subscription->status) }}
+                                </span>
+
+                            </td>
+
+                            <td class="p-4">
+                                {{ $subscription
+                                    ->starts_at
+                                    ?->format('d M Y') ?? '—'
+                                }}
+                            </td>
+
+                            <td class="p-4">
+                                {{ $subscription
+                                    ->expires_at
+                                    ?->format('d M Y') ?? '—'
+                                }}
+                            </td>
+
+                        </tr>
+
+                    @empty
+
+                        <tr>
+
+                            <td
+                                colspan="5"
+                                class="p-8 text-center text-gray-500"
+                            >
+                                No subscription history yet.
+                            </td>
+
+                        </tr>
+
+                    @endforelse
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </main>
+
+</div>
+
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Subscription Payment - Tuition Hub</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100">
+
+<div class="min-h-screen">
+
+    <nav class="bg-white border-b shadow-sm">
+
+        <div class="max-w-4xl mx-auto px-6 py-4 flex justify-between">
+
+            <a
+                href="{{ route('teacher.dashboard') }}"
+                class="font-bold text-xl text-indigo-600"
+            >
+                Tuition Hub
+            </a>
+
+            <a
+                href="{{ route('teacher.subscription.index') }}"
+                class="text-indigo-600"
+            >
+                Subscription
+            </a>
+
+        </div>
+
+    </nav>
+
+    <main class="max-w-2xl mx-auto px-6 py-8">
+
+        <h1 class="text-3xl font-bold">
+            Subscription Payment
+        </h1>
+
+        <p class="text-gray-500 mt-2">
+            Complete the payment and submit your transaction information.
+        </p>
+
+        @if(session('error'))
+
+            <div class="mt-6 bg-red-100 border border-red-200 text-red-700 p-4 rounded-lg">
+                {{ session('error') }}
+            </div>
+
+        @endif
+
+        @if($errors->any())
+
+            <div class="mt-6 bg-red-100 border border-red-200 text-red-700 p-4 rounded-lg">
+
+                <ul class="list-disc pl-5">
+
+                    @foreach($errors->all() as $error)
+
+                        <li>
+                            {{ $error }}
+                        </li>
+
+                    @endforeach
+
+                </ul>
+
+            </div>
+
+        @endif
+
+        {{-- Plan --}}
+        <div class="bg-white border rounded-xl shadow-sm p-6 mt-6">
+
+            <p class="text-sm text-gray-500">
+                Subscription Plan
+            </p>
+
+            <h2 class="text-2xl font-bold mt-1">
+                {{ $subscription->plan?->name }}
+            </h2>
+
+            <div class="mt-5">
+
+                <p class="text-sm text-gray-500">
+                    Amount to Pay
+                </p>
+
+                <p class="text-3xl font-bold text-indigo-600 mt-1">
+                    ৳{{ number_format(
+                        (float) $subscription->amount,
+                        2
+                    ) }}
+                </p>
+
+            </div>
+
+        </div>
+
+        @if(
+            ! $paymentSetting->bkash_enabled &&
+            ! $paymentSetting->nagad_enabled
+        )
+
+            <div class="mt-6 bg-yellow-50 border border-yellow-200 text-yellow-800 p-5 rounded-xl">
+
+                <h2 class="font-bold">
+                    Payment is temporarily unavailable
+                </h2>
+
+                <p class="text-sm mt-2">
+                    No manual payment method is currently enabled.
+                    Please contact Tuition Hub support.
+                </p>
+
+            </div>
+
+        @else
+
+            {{-- Payment Accounts --}}
+            <div class="bg-white border rounded-xl shadow-sm p-6 mt-6">
+
+                <h2 class="text-xl font-bold">
+                    Payment Accounts
+                </h2>
+
+                <p class="text-sm text-gray-500 mt-2">
+                    Send the exact subscription amount to one of the available accounts.
+                </p>
+
+                <div class="space-y-4 mt-5">
+
+                    @if($paymentSetting->bkash_enabled)
+
+                        <div class="border rounded-lg p-4">
+
+                            <div class="flex justify-between gap-4">
+
+                                <div>
+
+                                    <p class="font-bold text-pink-600">
+                                        bKash
+                                    </p>
+
+                                    <p class="text-2xl font-bold mt-2">
+                                        {{ $paymentSetting->bkash_number }}
+                                    </p>
+
+                                </div>
+
+                                @if($paymentSetting->bkash_account_type)
+
+                                    <span class="h-fit bg-pink-50 text-pink-700 text-xs px-3 py-1 rounded-full">
+                                        {{ strtoupper(
+                                            $paymentSetting->bkash_account_type
+                                        ) }}
+                                    </span>
+
+                                @endif
+
+                            </div>
+
+                        </div>
+
+                    @endif
+
+                    @if($paymentSetting->nagad_enabled)
+
+                        <div class="border rounded-lg p-4">
+
+                            <div class="flex justify-between gap-4">
+
+                                <div>
+
+                                    <p class="font-bold text-orange-600">
+                                        Nagad
+                                    </p>
+
+                                    <p class="text-2xl font-bold mt-2">
+                                        {{ $paymentSetting->nagad_number }}
+                                    </p>
+
+                                </div>
+
+                                @if($paymentSetting->nagad_account_type)
+
+                                    <span class="h-fit bg-orange-50 text-orange-700 text-xs px-3 py-1 rounded-full">
+                                        {{ strtoupper(
+                                            $paymentSetting->nagad_account_type
+                                        ) }}
+                                    </span>
+
+                                @endif
+
+                            </div>
+
+                        </div>
+
+                    @endif
+
+                </div>
+
+                @if($paymentSetting->payment_instruction)
+
+                    <div class="mt-5 bg-gray-50 border rounded-lg p-4">
+
+                        <p class="font-medium">
+                            Payment Instructions
+                        </p>
+
+                        <p class="text-sm text-gray-600 mt-2 whitespace-pre-line">{{ $paymentSetting->payment_instruction }}</p>
+
+                    </div>
+
+                @endif
+
+            </div>
+
+            @if(
+                $existingPayment &&
+                $existingPayment->status === 'pending'
+            )
+
+                <div class="mt-6 bg-yellow-50 border border-yellow-200 p-5 rounded-xl">
+
+                    <h2 class="font-bold text-yellow-800">
+                        Payment Verification Pending
+                    </h2>
+
+                    <p class="text-sm text-yellow-700 mt-2">
+                        Transaction ID:
+                        <strong>
+                            {{ $existingPayment->transaction_id }}
+                        </strong>
+                    </p>
+
+                    <p class="text-sm text-yellow-700 mt-1">
+                        Your submitted payment is waiting for admin verification.
+                    </p>
+
+                </div>
+
+            @else
+
+                {{-- Submission --}}
+                <form
+                    method="POST"
+                    action="{{ route(
+                        'teacher.payment.store',
+                        $subscription
+                    ) }}"
+                    class="bg-white border rounded-xl shadow-sm p-6 mt-6"
+                >
+
+                    @csrf
+
+                    <h2 class="text-xl font-bold">
+                        Submit Payment Information
+                    </h2>
+
+                    <div class="mt-5">
+
+                        <label class="block text-sm font-medium mb-2">
+                            Payment Method
+                        </label>
+
+                        <select
+                            name="payment_method"
+                            required
+                            class="w-full border rounded-lg px-4 py-3"
+                        >
+
+                            <option value="">
+                                Select payment method
+                            </option>
+
+                            @if($paymentSetting->bkash_enabled)
+
+                                <option
+                                    value="bkash"
+                                    @selected(
+                                        old('payment_method') === 'bkash'
+                                    )
+                                >
+                                    bKash
+                                </option>
+
+                            @endif
+
+                            @if($paymentSetting->nagad_enabled)
+
+                                <option
+                                    value="nagad"
+                                    @selected(
+                                        old('payment_method') === 'nagad'
+                                    )
+                                >
+                                    Nagad
+                                </option>
+
+                            @endif
+
+                        </select>
+
+                    </div>
+
+                    <div class="mt-5">
+
+                        <label class="block text-sm font-medium mb-2">
+                            Your Sender Number
+                        </label>
+
+                        <input
+                            type="text"
+                            name="sender_number"
+                            value="{{ old('sender_number') }}"
+                            required
+                            placeholder="01XXXXXXXXX"
+                            class="w-full border rounded-lg px-4 py-3"
+                        >
+
+                    </div>
+
+                    <div class="mt-5">
+
+                        <label class="block text-sm font-medium mb-2">
+                            Transaction ID
+                        </label>
+
+                        <input
+                            type="text"
+                            name="transaction_id"
+                            value="{{ old('transaction_id') }}"
+                            required
+                            placeholder="Example: 9ABC123XYZ"
+                            class="w-full border rounded-lg px-4 py-3"
+                        >
+
+                    </div>
+
+                    <button
+                        type="submit"
+                        class="w-full mt-6 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-3 rounded-lg"
+                    >
+                        Submit Payment for Verification
+                    </button>
+
+                </form>
+
+            @endif
+
+        @endif
+
+    </main>
+
+</div>
+
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Verification Documents - Tuition Hub</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100">
+
+<div class="min-h-screen">
+
+    <nav class="bg-white border-b">
+
+        <div class="max-w-6xl mx-auto px-6 py-4 flex flex-wrap items-center justify-between gap-4">
+
+            <a
+                href="{{ route('teacher.dashboard') }}"
+                class="text-xl font-bold text-indigo-600"
+            >
+                Tuition Hub
+            </a>
+
+            <div class="flex flex-wrap gap-5 text-sm">
+
+                <a
+                    href="{{ route('teacher.dashboard') }}"
+                    class="text-gray-600"
+                >
+                    Dashboard
+                </a>
+
+                <a
+                    href="{{ route('teacher.profile.edit') }}"
+                    class="text-gray-600"
+                >
+                    Profile
+                </a>
+
+                <a
+                    href="{{ route(
+                        'teacher.verification-documents.index'
+                    ) }}"
+                    class="text-indigo-600 font-semibold"
+                >
+                    Verification
+                </a>
+
+            </div>
+
+        </div>
+
+    </nav>
+
+    <main class="max-w-5xl mx-auto px-6 py-8">
+
+        <div>
+
+            <h1 class="text-3xl font-bold">
+                Teacher Verification Documents
+            </h1>
+
+            <p class="text-gray-500 mt-2">
+                Upload documents securely for admin verification.
+            </p>
+
+        </div>
+
+        <div class="mt-5 bg-indigo-50 border border-indigo-100 rounded-xl p-4 text-sm text-indigo-800">
+            Your verification files are private. They are accessible only to you and authorized administrators.
+        </div>
+
+        @if(session('success'))
+
+            <div class="mt-5 bg-green-100 border border-green-200 text-green-700 p-4 rounded-lg">
+                {{ session('success') }}
+            </div>
+
+        @endif
+
+        @if(session('error'))
+
+            <div class="mt-5 bg-red-100 border border-red-200 text-red-700 p-4 rounded-lg">
+                {{ session('error') }}
+            </div>
+
+        @endif
+
+        @if($errors->any())
+
+            <div class="mt-5 bg-red-100 text-red-700 p-4 rounded-lg">
+
+                <ul class="list-disc pl-5">
+
+                    @foreach($errors->all() as $error)
+
+                        <li>
+                            {{ $error }}
+                        </li>
+
+                    @endforeach
+
+                </ul>
+
+            </div>
+
+        @endif
+
+        <section class="bg-white border rounded-xl p-6 mt-7">
+
+            <h2 class="text-xl font-bold">
+                Upload Document
+            </h2>
+
+            <form
+                method="POST"
+                action="{{ route(
+                    'teacher.verification-documents.store'
+                ) }}"
+                enctype="multipart/form-data"
+                class="mt-5"
+            >
+
+                @csrf
+
+                <div class="grid md:grid-cols-2 gap-5">
+
+                    <div>
+
+                        <label class="block text-sm font-medium mb-2">
+                            Document Type
+                        </label>
+
+                        <select
+                            name="document_type"
+                            required
+                            class="w-full border rounded-lg px-4 py-3"
+                        >
+
+                            <option value="">
+                                Select Type
+                            </option>
+
+                            <option
+                                value="nid"
+                                @selected(old('document_type') === 'nid')
+                            >
+                                National ID
+                            </option>
+
+                            <option
+                                value="student_id"
+                                @selected(old('document_type') === 'student_id')
+                            >
+                                Student ID
+                            </option>
+
+                            <option
+                                value="certificate"
+                                @selected(old('document_type') === 'certificate')
+                            >
+                                Certificate
+                            </option>
+
+                            <option
+                                value="other"
+                                @selected(old('document_type') === 'other')
+                            >
+                                Other
+                            </option>
+
+                        </select>
+
+                    </div>
+
+                    <div>
+
+                        <label class="block text-sm font-medium mb-2">
+                            Document Name
+                        </label>
+
+                        <input
+                            type="text"
+                            name="document_name"
+                            value="{{ old('document_name') }}"
+                            placeholder="Optional description"
+                            class="w-full border rounded-lg px-4 py-3"
+                        >
+
+                    </div>
+
+                </div>
+
+                <div class="mt-5">
+
+                    <label class="block text-sm font-medium mb-2">
+                        File
+                    </label>
+
+                    <input
+                        type="file"
+                        name="file"
+                        required
+                        accept=".jpg,.jpeg,.png,.webp,.pdf"
+                        class="w-full border rounded-lg p-3"
+                    >
+
+                    <p class="text-xs text-gray-500 mt-2">
+                        JPG, PNG, WEBP or PDF. Maximum 5 MB.
+                    </p>
+
+                </div>
+
+                <button
+                    type="submit"
+                    class="mt-5 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg"
+                >
+                    Upload Securely
+                </button>
+
+            </form>
+
+        </section>
+
+        <section class="mt-7">
+
+            <h2 class="text-xl font-bold">
+                Submitted Documents
+            </h2>
+
+            <div class="space-y-4 mt-4">
+
+                @forelse($documents as $document)
+
+                    <div class="bg-white border rounded-xl p-5">
+
+                        <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-5">
+
+                            <div>
+
+                                <div class="flex flex-wrap items-center gap-3">
+
+                                    <h3 class="font-bold">
+                                        {{ $document->document_name
+                                            ?: ucwords(
+                                                str_replace(
+                                                    '_',
+                                                    ' ',
+                                                    $document->document_type
+                                                )
+                                            )
+                                        }}
+                                    </h3>
+
+                                    <span class="
+                                        text-xs px-3 py-1 rounded-full font-medium
+
+                                        @if($document->status === 'approved')
+                                            bg-green-100 text-green-700
+                                        @elseif($document->status === 'rejected')
+                                            bg-red-100 text-red-700
+                                        @else
+                                            bg-yellow-100 text-yellow-700
+                                        @endif
+                                    ">
+                                        {{ strtoupper(
+                                            $document->status
+                                        ) }}
+                                    </span>
+
+                                </div>
+
+                                <p class="text-sm text-gray-500 mt-2">
+                                    Type:
+                                    {{ ucwords(
+                                        str_replace(
+                                            '_',
+                                            ' ',
+                                            $document->document_type
+                                        )
+                                    ) }}
+                                </p>
+
+                                <p class="text-sm text-gray-500 mt-1">
+                                    Uploaded:
+                                    {{ $document->created_at
+                                        ?->format('d M Y, h:i A')
+                                    }}
+                                </p>
+
+                                @if($document->admin_note)
+
+                                    <div class="mt-4 bg-red-50 border border-red-100 rounded-lg p-4">
+
+                                        <strong class="text-sm text-red-700">
+                                            Admin Note
+                                        </strong>
+
+                                        <p class="text-sm mt-1 text-red-700">
+                                            {{ $document->admin_note }}
+                                        </p>
+
+                                    </div>
+
+                                @endif
+
+                            </div>
+
+                            <div class="flex flex-wrap gap-3">
+
+                                <a
+                                    href="{{ route(
+                                        'teacher.verification-documents.view',
+                                        $document
+                                    ) }}"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    class="border px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50"
+                                >
+                                    View Document
+                                </a>
+
+                                @if($document->status !== 'approved')
+
+                                    <form
+                                        method="POST"
+                                        action="{{ route(
+                                            'teacher.verification-documents.destroy',
+                                            $document
+                                        ) }}"
+                                    >
+
+                                        @csrf
+                                        @method('DELETE')
+
+                                        <button
+                                            type="submit"
+                                            onclick="return confirm('Delete this verification document?')"
+                                            class="border border-red-200 text-red-600 px-4 py-2 rounded-lg text-sm hover:bg-red-50"
+                                        >
+                                            Delete
+                                        </button>
+
+                                    </form>
+
+                                @endif
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                @empty
+
+                    <div class="bg-white border rounded-xl p-10 text-center text-gray-500">
+                        No verification documents uploaded yet.
+                    </div>
+
+                @endforelse
+
+            </div>
+
+        </section>
+
+    </main>
+
+</div>
+
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Teacher Profile - Tuition Hub</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100">
+
+<div class="min-h-screen">
+
+    <nav class="bg-white border-b">
+
+        <div class="max-w-6xl mx-auto px-6 py-4 flex flex-wrap items-center justify-between gap-4">
+
+            <a
+                href="{{ route('teacher.dashboard') }}"
+                class="text-xl font-bold text-indigo-600"
+            >
+                Tuition Hub
+            </a>
+
+            <div class="flex items-center gap-5 text-sm">
+
+                <a
+                    href="{{ route('teacher.dashboard') }}"
+                    class="text-gray-600"
+                >
+                    Dashboard
+                </a>
+
+                <a
+                    href="{{ route('teacher.tuitions.index') }}"
+                    class="text-gray-600"
+                >
+                    Find Tuition
+                </a>
+
+                <a
+                    href="{{ route('teacher.subscription.index') }}"
+                    class="text-gray-600"
+                >
+                    Subscription
+                </a>
+
+            </div>
+
+        </div>
+
+    </nav>
+
+    <main class="max-w-5xl mx-auto px-6 py-8">
+
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+
+            <div>
+
+                <h1 class="text-3xl font-bold">
+                    Teacher Profile
+                </h1>
+
+                <p class="text-gray-500 mt-2">
+                    Complete your profile before joining the Tuition Hub marketplace.
+                </p>
+
+            </div>
+
+            @if($profile->is_verified)
+
+                <span class="inline-flex w-fit items-center bg-green-100 text-green-700 px-4 py-2 rounded-full text-sm font-semibold">
+                    ✓ Verified Teacher
+                </span>
+
+            @else
+
+                <span class="inline-flex w-fit items-center bg-yellow-100 text-yellow-700 px-4 py-2 rounded-full text-sm font-semibold">
+                    Verification Pending
+                </span>
+
+            @endif
+
+        </div>
+
+        @if(session('success'))
+
+            <div class="mt-6 bg-green-100 border border-green-200 text-green-700 rounded-lg p-4">
+                {{ session('success') }}
+            </div>
+
+        @endif
+
+        @if(session('error'))
+
+            <div class="mt-6 bg-red-100 border border-red-200 text-red-700 rounded-lg p-4">
+                {{ session('error') }}
+            </div>
+
+        @endif
+
+        @if($errors->any())
+
+            <div class="mt-6 bg-red-100 border border-red-200 text-red-700 rounded-lg p-4">
+
+                <ul class="list-disc pl-5">
+
+                    @foreach($errors->all() as $error)
+
+                        <li>{{ $error }}</li>
+
+                    @endforeach
+
+                </ul>
+
+            </div>
+
+        @endif
+
+        @if($profile->is_verified)
+
+            <div class="mt-6 bg-blue-50 border border-blue-200 text-blue-800 rounded-lg p-4 text-sm">
+                Your profile is verified. Changing your photo, education,
+                subjects, locations, gender, experience or teaching mode
+                will require admin verification again.
+            </div>
+
+        @endif
+
+        <form
+            method="POST"
+            action="{{ route('teacher.profile.update') }}"
+            enctype="multipart/form-data"
+            class="mt-7 space-y-6"
+        >
+
+            @csrf
+            @method('PUT')
+
+            {{-- Profile Photo --}}
+            <section class="bg-white border rounded-xl p-6">
+
+                <h2 class="text-xl font-bold">
+                    Profile Photo
+                </h2>
+
+                <div class="mt-5 flex flex-col sm:flex-row sm:items-center gap-6">
+
+                    <div>
+
+                        @if($profile->profile_photo)
+
+                            <img
+                                src="{{ asset(
+                                    'storage/'.$profile->profile_photo
+                                ) }}"
+                                alt="{{ $user->name }}"
+                                class="w-32 h-32 rounded-full object-cover border"
+                            >
+
+                        @else
+
+                            <div class="w-32 h-32 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-4xl font-bold">
+                                {{ strtoupper(
+                                    substr($user->name, 0, 1)
+                                ) }}
+                            </div>
+
+                        @endif
+
+                    </div>
+
+                    <div class="flex-1">
+
+                        <label class="block text-sm font-medium mb-2">
+                            Upload Photo
+                        </label>
+
+                        <input
+                            type="file"
+                            name="profile_photo"
+                            accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                            class="block w-full border rounded-lg p-3 bg-white"
+                        >
+
+                        <p class="text-xs text-gray-500 mt-2">
+                            JPG, JPEG, PNG or WEBP. Maximum size 2 MB.
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+            {{-- Basic Information --}}
+            <section class="bg-white border rounded-xl p-6">
+
+                <h2 class="text-xl font-bold">
+                    Basic Information
+                </h2>
+
+                <div class="grid md:grid-cols-2 gap-5 mt-5">
+
+                    <div>
+
+                        <label class="block text-sm font-medium mb-2">
+                            Name
+                        </label>
+
+                        <input
+                            type="text"
+                            value="{{ $user->name }}"
+                            disabled
+                            class="w-full border rounded-lg px-4 py-3 bg-gray-100"
+                        >
+
+                    </div>
+
+                    <div>
+
+                        <label class="block text-sm font-medium mb-2">
+                            Email
+                        </label>
+
+                        <input
+                            type="email"
+                            value="{{ $user->email }}"
+                            disabled
+                            class="w-full border rounded-lg px-4 py-3 bg-gray-100"
+                        >
+
+                    </div>
+
+                    <div>
+
+                        <label class="block text-sm font-medium mb-2">
+                            Phone
+                        </label>
+
+                        <input
+                            type="text"
+                            value="{{ $user->phone }}"
+                            disabled
+                            class="w-full border rounded-lg px-4 py-3 bg-gray-100"
+                        >
+
+                    </div>
+
+                    <div>
+
+                        <label class="block text-sm font-medium mb-2">
+                            Gender
+                        </label>
+
+                        <select
+                            name="gender"
+                            required
+                            class="w-full border rounded-lg px-4 py-3"
+                        >
+
+                            <option value="">
+                                Select gender
+                            </option>
+
+                            <option
+                                value="male"
+                                @selected(
+                                    old(
+                                        'gender',
+                                        $profile->gender
+                                    ) === 'male'
+                                )
+                            >
+                                Male
+                            </option>
+
+                            <option
+                                value="female"
+                                @selected(
+                                    old(
+                                        'gender',
+                                        $profile->gender
+                                    ) === 'female'
+                                )
+                            >
+                                Female
+                            </option>
+
+                            <option
+                                value="other"
+                                @selected(
+                                    old(
+                                        'gender',
+                                        $profile->gender
+                                    ) === 'other'
+                                )
+                            >
+                                Other
+                            </option>
+
+                        </select>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+            {{-- Education --}}
+            <section class="bg-white border rounded-xl p-6">
+
+                <h2 class="text-xl font-bold">
+                    Education & Experience
+                </h2>
+
+                <div class="grid md:grid-cols-2 gap-5 mt-5">
+
+                    <div>
+
+                        <label class="block text-sm font-medium mb-2">
+                            University / Institution
+                        </label>
+
+                        <input
+                            type="text"
+                            name="university"
+                            value="{{ old(
+                                'university',
+                                $profile->university
+                            ) }}"
+                            required
+                            class="w-full border rounded-lg px-4 py-3"
+                        >
+
+                    </div>
+
+                    <div>
+
+                        <label class="block text-sm font-medium mb-2">
+                            Department
+                        </label>
+
+                        <input
+                            type="text"
+                            name="department"
+                            value="{{ old(
+                                'department',
+                                $profile->department
+                            ) }}"
+                            required
+                            class="w-full border rounded-lg px-4 py-3"
+                        >
+
+                    </div>
+
+                    <div>
+
+                        <label class="block text-sm font-medium mb-2">
+                            Degree
+                        </label>
+
+                        <input
+                            type="text"
+                            name="degree"
+                            value="{{ old(
+                                'degree',
+                                $profile->degree
+                            ) }}"
+                            class="w-full border rounded-lg px-4 py-3"
+                        >
+
+                    </div>
+
+                    <div>
+
+                        <label class="block text-sm font-medium mb-2">
+                            Teaching Experience (Years)
+                        </label>
+
+                        <input
+                            type="number"
+                            name="experience_years"
+                            min="0"
+                            max="60"
+                            value="{{ old(
+                                'experience_years',
+                                $profile->experience_years
+                            ) }}"
+                            required
+                            class="w-full border rounded-lg px-4 py-3"
+                        >
+
+                    </div>
+
+                </div>
+
+                <div class="mt-5">
+
+                    <label class="block text-sm font-medium mb-2">
+                        About You
+                    </label>
+
+                    <textarea
+                        name="bio"
+                        rows="5"
+                        class="w-full border rounded-lg px-4 py-3"
+                        placeholder="Write a short introduction about your teaching experience..."
+                    >{{ old(
+                        'bio',
+                        $profile->bio
+                    ) }}</textarea>
+
+                </div>
+
+            </section>
+
+            {{-- Subjects --}}
+            <section class="bg-white border rounded-xl p-6">
+
+                <h2 class="text-xl font-bold">
+                    Subjects You Teach
+                </h2>
+
+                @php
+                    $selectedSubjects = old(
+                        'subjects',
+                        $profile
+                            ->subjects
+                            ->pluck('id')
+                            ->toArray()
+                    );
+                @endphp
+
+                <div class="grid sm:grid-cols-2 md:grid-cols-3 gap-3 mt-5">
+
+                    @foreach($subjects as $subject)
+
+                        <label class="flex items-center gap-3 border rounded-lg p-3 cursor-pointer">
+
+                            <input
+                                type="checkbox"
+                                name="subjects[]"
+                                value="{{ $subject->id }}"
+                                @checked(
+                                    in_array(
+                                        $subject->id,
+                                        $selectedSubjects
+                                    )
+                                )
+                            >
+
+                            <span>
+                                {{ $subject->name }}
+                            </span>
+
+                        </label>
+
+                    @endforeach
+
+                </div>
+
+            </section>
+
+            {{-- Locations --}}
+            <section class="bg-white border rounded-xl p-6">
+
+                <h2 class="text-xl font-bold">
+                    Preferred Teaching Locations
+                </h2>
+
+                <p class="text-sm text-gray-500 mt-1">
+                    Select areas where you are available for offline tuition.
+                </p>
+
+                @php
+                    $selectedLocations = old(
+                        'locations',
+                        $profile
+                            ->locations
+                            ->pluck('id')
+                            ->toArray()
+                    );
+                @endphp
+
+                <div class="grid sm:grid-cols-2 md:grid-cols-3 gap-3 mt-5">
+
+                    @foreach($locations as $location)
+
+                        <label class="flex items-start gap-3 border rounded-lg p-3 cursor-pointer">
+
+                            <input
+                                type="checkbox"
+                                name="locations[]"
+                                value="{{ $location->id }}"
+                                class="mt-1"
+                                @checked(
+                                    in_array(
+                                        $location->id,
+                                        $selectedLocations
+                                    )
+                                )
+                            >
+
+                            <span class="text-sm">
+
+                                <strong>
+                                    {{ $location->area }}
+                                </strong>
+
+                                @if($location->district)
+
+                                    <span class="block text-gray-500 text-xs mt-1">
+                                        {{ $location->district }}
+                                    </span>
+
+                                @endif
+
+                            </span>
+
+                        </label>
+
+                    @endforeach
+
+                </div>
+
+            </section>
+
+            {{-- Teaching Preferences --}}
+            <section class="bg-white border rounded-xl p-6">
+
+                <h2 class="text-xl font-bold">
+                    Teaching Preferences
+                </h2>
+
+                <div class="grid md:grid-cols-3 gap-5 mt-5">
+
+                    <div>
+
+                        <label class="block text-sm font-medium mb-2">
+                            Teaching Mode
+                        </label>
+
+                        <select
+                            name="teaching_mode"
+                            required
+                            class="w-full border rounded-lg px-4 py-3"
+                        >
+
+                            <option
+                                value="offline"
+                                @selected(
+                                    old(
+                                        'teaching_mode',
+                                        $profile->teaching_mode
+                                    ) === 'offline'
+                                )
+                            >
+                                Offline
+                            </option>
+
+                            <option
+                                value="online"
+                                @selected(
+                                    old(
+                                        'teaching_mode',
+                                        $profile->teaching_mode
+                                    ) === 'online'
+                                )
+                            >
+                                Online
+                            </option>
+
+                            <option
+                                value="both"
+                                @selected(
+                                    old(
+                                        'teaching_mode',
+                                        $profile->teaching_mode
+                                    ) === 'both'
+                                )
+                            >
+                                Both
+                            </option>
+
+                        </select>
+
+                    </div>
+
+                    <div>
+
+                        <label class="block text-sm font-medium mb-2">
+                            Minimum Expected Salary
+                        </label>
+
+                        <input
+                            type="number"
+                            name="expected_salary_min"
+                            min="0"
+                            value="{{ old(
+                                'expected_salary_min',
+                                $profile->expected_salary_min
+                            ) }}"
+                            class="w-full border rounded-lg px-4 py-3"
+                        >
+
+                    </div>
+
+                    <div>
+
+                        <label class="block text-sm font-medium mb-2">
+                            Maximum Expected Salary
+                        </label>
+
+                        <input
+                            type="number"
+                            name="expected_salary_max"
+                            min="0"
+                            value="{{ old(
+                                'expected_salary_max',
+                                $profile->expected_salary_max
+                            ) }}"
+                            class="w-full border rounded-lg px-4 py-3"
+                        >
+
+                    </div>
+
+                </div>
+
+                <label class="flex items-center gap-3 mt-6">
+
+                    <input
+                        type="checkbox"
+                        name="is_available"
+                        value="1"
+                        @checked(
+                            old(
+                                'is_available',
+                                $profile->is_available
+                            )
+                        )
+                    >
+
+                    <span>
+
+                        <strong>
+                            Available for tuition
+                        </strong>
+
+                        <span class="block text-sm text-gray-500">
+                            Students can find and request you when your profile is verified.
+                        </span>
+
+                    </span>
+
+                </label>
+
+            </section>
+
+            <div class="flex justify-end">
+
+                <button
+                    type="submit"
+                    class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-7 py-3 rounded-lg"
+                >
+                    Save Profile
+                </button>
+
+            </div>
+
+        </form>
+
+    </main>
+
+</div>
+
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>My Complaints - Tuition Hub</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100">
+
+<main class="max-w-5xl mx-auto px-6 py-8">
+
+    <div class="flex justify-between gap-4">
+
+        <div>
+
+            <h1 class="text-3xl font-bold">
+                My Complaints
+            </h1>
+
+            <p class="text-gray-500 mt-2">
+                Track your submitted complaints.
+            </p>
+
+        </div>
+
+        <a
+            href="{{ route('teacher.assignments.index') }}"
+            class="text-indigo-600"
+        >
+            Assignments
+        </a>
+
+    </div>
+
+    @if(session('success'))
+
+        <div class="mt-6 bg-green-100 text-green-700 p-4 rounded-lg">
+            {{ session('success') }}
+        </div>
+
+    @endif
+
+    <div class="space-y-4 mt-7">
+
+        @forelse($complaints as $complaint)
+
+            <div class="bg-white border rounded-xl p-5">
+
+                <div class="flex justify-between gap-4">
+
+                    <div>
+
+                        <p class="text-xs text-gray-400">
+                            Complaint #{{ $complaint->id }}
+                        </p>
+
+                        <h2 class="font-bold text-lg mt-1">
+                            {{ $complaint->subject }}
+                        </h2>
+
+                        <p class="text-sm text-gray-500 mt-2">
+                            Category:
+                            {{ ucwords(
+                                str_replace(
+                                    '_',
+                                    ' ',
+                                    $complaint->category
+                                )
+                            ) }}
+                        </p>
+
+                    </div>
+
+                    <span class="text-xs px-3 py-1 rounded-full bg-gray-100 h-fit">
+                        {{ strtoupper(
+                            $complaint->status
+                        ) }}
+                    </span>
+
+                </div>
+
+                <p class="text-sm text-gray-700 mt-4 whitespace-pre-line">{{ $complaint->description }}</p>
+
+                @if($complaint->admin_note)
+
+                    <div class="mt-4 bg-indigo-50 p-4 rounded-lg">
+
+                        <strong>
+                            Admin Note:
+                        </strong>
+
+                        <p class="text-sm mt-1">
+                            {{ $complaint->admin_note }}
+                        </p>
+
+                    </div>
+
+                @endif
+
+            </div>
+
+        @empty
+
+            <div class="bg-white border rounded-xl p-10 text-center text-gray-500">
+                No complaints submitted yet.
+            </div>
+
+        @endforelse
+
+    </div>
+
+    <div class="mt-6">
+        {{ $complaints->links() }}
+    </div>
+
+</main>
+
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Submit Complaint - Tuition Hub</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100">
+
+<main class="max-w-3xl mx-auto px-6 py-8">
+
+    <a
+        href="{{ route('teacher.assignments.index') }}"
+        class="text-indigo-600"
+    >
+        ← Back to Assignments
+    </a>
+
+    <h1 class="text-3xl font-bold mt-5">
+        Submit Complaint
+    </h1>
+
+    <p class="text-gray-500 mt-2">
+        Tuition:
+        {{ $assignment->tuitionPost?->title }}
+    </p>
+
+    <p class="text-gray-500">
+        Student:
+        {{ $assignment->student?->name }}
+    </p>
+
+    @if($errors->any())
+
+        <div class="mt-6 bg-red-100 text-red-700 p-4 rounded-lg">
+
+            <ul class="list-disc pl-5">
+
+                @foreach($errors->all() as $error)
+
+                    <li>
+                        {{ $error }}
+                    </li>
+
+                @endforeach
+
+            </ul>
+
+        </div>
+
+    @endif
+
+    <form
+        method="POST"
+        action="{{ route(
+            'teacher.complaints.store',
+            $assignment
+        ) }}"
+        class="bg-white border rounded-xl p-6 mt-7"
+    >
+
+        @csrf
+
+        <div>
+
+            <label class="block text-sm font-medium mb-2">
+                Category
+            </label>
+
+            <select
+                name="category"
+                required
+                class="w-full border rounded-lg px-4 py-3"
+            >
+
+                <option value="">
+                    Select category
+                </option>
+
+                <option value="behavior">
+                    Behavior
+                </option>
+
+                <option value="payment">
+                    Payment
+                </option>
+
+                <option value="attendance">
+                    Attendance
+                </option>
+
+                <option value="misinformation">
+                    Misinformation
+                </option>
+
+                <option value="harassment">
+                    Harassment
+                </option>
+
+                <option value="safety">
+                    Safety Concern
+                </option>
+
+                <option value="other">
+                    Other
+                </option>
+
+            </select>
+
+        </div>
+
+        <div class="mt-5">
+
+            <label class="block text-sm font-medium mb-2">
+                Subject
+            </label>
+
+            <input
+                type="text"
+                name="subject"
+                value="{{ old('subject') }}"
+                required
+                class="w-full border rounded-lg px-4 py-3"
+            >
+
+        </div>
+
+        <div class="mt-5">
+
+            <label class="block text-sm font-medium mb-2">
+                Description
+            </label>
+
+            <textarea
+                name="description"
+                rows="7"
+                required
+                class="w-full border rounded-lg px-4 py-3"
+            >{{ old('description') }}</textarea>
+
+        </div>
+
+        <button
+            type="submit"
+            class="mt-6 bg-red-600 text-white px-6 py-3 rounded-lg"
+        >
+            Submit Complaint
+        </button>
+
+    </form>
+
+</main>
+
+</body>
+</html>

@@ -1,0 +1,2520 @@
+<?php
+
+
+
+namespace App\Http\Controllers\Student;
+
+
+
+use App\Http\Controllers\Controller;
+
+use App\Models\TeacherProfile;
+
+use App\Models\TeacherRequest;
+
+use App\Models\TuitionApplication;
+
+use App\Models\TuitionAssignment;
+
+use App\Models\TuitionPost;
+
+use App\Models\User;
+
+use App\Services\UserNotificationService;
+
+use Illuminate\Http\RedirectResponse;
+
+use Illuminate\Http\Request;
+
+use Illuminate\Support\Facades\DB;
+
+use Illuminate\View\View;
+
+
+
+class TeacherController extends Controller
+
+{
+
+    public function index(
+
+        Request $request
+
+    ): View {
+
+        $query = TeacherProfile::query()
+
+            ->with([
+
+                'user',
+
+                'subjects',
+
+                'locations',
+
+            ])
+
+            ->where(
+
+                'is_verified',
+
+                true
+
+            )
+
+            ->where(
+
+                'is_available',
+
+                true
+
+            )
+
+            ->whereHas(
+
+                'user',
+
+                function ($userQuery) {
+
+                    $userQuery->where(
+
+                        'status',
+
+                        'active'
+
+                    );
+
+                }
+
+            );
+
+
+
+        if ($request->filled('search')) {
+
+            $search = trim(
+
+                $request->search
+
+            );
+
+
+
+            $query->where(
+
+                function ($q) use ($search) {
+
+                    $q->where(
+
+                        'university',
+
+                        'like',
+
+                        "%{$search}%"
+
+                    )
+
+                        ->orWhere(
+
+                            'department',
+
+                            'like',
+
+                            "%{$search}%"
+
+                        )
+
+                        ->orWhereHas(
+
+                            'user',
+
+                            function ($userQuery) use ($search) {
+
+                                $userQuery->where(
+
+                                    'name',
+
+                                    'like',
+
+                                    "%{$search}%"
+
+                                );
+
+                            }
+
+                        );
+
+                }
+
+            );
+
+        }
+
+
+
+        if ($request->filled('subject')) {
+
+            $subjectId = $request->subject;
+
+
+
+            $query->whereHas(
+
+                'subjects',
+
+                function ($subjectQuery) use ($subjectId) {
+
+                    $subjectQuery->where(
+
+                        'subjects.id',
+
+                        $subjectId
+
+                    );
+
+                }
+
+            );
+
+        }
+
+
+
+        if ($request->filled('location')) {
+
+            $locationId = $request->location;
+
+
+
+            $query->whereHas(
+
+                'locations',
+
+                function ($locationQuery) use ($locationId) {
+
+                    $locationQuery->where(
+
+                        'locations.id',
+
+                        $locationId
+
+                    );
+
+                }
+
+            );
+
+        }
+
+
+
+        if ($request->filled('gender')) {
+
+            $query->where(
+
+                'gender',
+
+                $request->gender
+
+            );
+
+        }
+
+
+
+        if ($request->filled('teaching_mode')) {
+
+            $mode = $request->teaching_mode;
+
+
+
+            $query->where(
+
+                function ($q) use ($mode) {
+
+                    $q->where(
+
+                        'teaching_mode',
+
+                        $mode
+
+                    )
+
+                        ->orWhere(
+
+                            'teaching_mode',
+
+                            'both'
+
+                        );
+
+                }
+
+            );
+
+        }
+
+
+
+        $teachers = $query
+
+            ->latest()
+
+            ->paginate(12)
+
+            ->withQueryString();
+
+
+
+        return view(
+
+            'student.teachers.index',
+
+            compact('teachers')
+
+        );
+
+    }
+
+
+
+    public function show(
+
+        TeacherProfile $teacher
+
+    ): View {
+
+        $teacher->load([
+
+            'user',
+
+            'subjects',
+
+            'locations',
+
+        ]);
+
+
+
+        abort_unless(
+
+            $teacher->is_verified &&
+
+            $teacher->is_available &&
+
+            $teacher->user &&
+
+            $teacher->user->status === 'active',
+
+            404
+
+        );
+
+
+
+        $user = auth()->user();
+
+
+
+        $tuitionPosts = TuitionPost::query()
+
+            ->where(
+
+                'user_id',
+
+                $user->id
+
+            )
+
+            ->where(
+
+                'status',
+
+                'published'
+
+            )
+
+            ->latest()
+
+            ->get();
+
+
+
+        $existingRequest = TeacherRequest::query()
+
+            ->where(
+
+                'student_user_id',
+
+                $user->id
+
+            )
+
+            ->where(
+
+                'teacher_profile_id',
+
+                $teacher->id
+
+            )
+
+            ->whereNotNull(
+
+                'tuition_post_id'
+
+            )
+
+            ->whereIn(
+
+                'status',
+
+                [
+
+                    'pending',
+
+                    'accepted',
+
+                ]
+
+            )
+
+            ->latest()
+
+            ->first();
+
+
+
+        return view(
+
+            'student.teachers.show',
+
+            compact(
+
+                'teacher',
+
+                'tuitionPosts',
+
+                'existingRequest'
+
+            )
+
+        );
+
+    }
+
+
+
+    public function requestTeacher(
+
+        Request $request,
+
+        TeacherProfile $teacher
+
+    ): RedirectResponse {
+
+        $studentProfile = auth()
+
+            ->user()
+
+            ->studentProfile;
+
+
+
+        if (
+
+            ! $studentProfile ||
+
+            ! $studentProfile->isCompleteForMarketplace()
+
+        ) {
+
+            return redirect()
+
+                ->route(
+
+                    'student.profile.edit'
+
+                )
+
+                ->with(
+
+                    'error',
+
+                    'Please complete your student / guardian profile before sending a teacher request.'
+
+                );
+
+        }
+
+
+
+        $validated = $request->validate([
+
+            'tuition_post_id' => [
+
+                'required',
+
+                'integer',
+
+                'exists:tuition_posts,id',
+
+            ],
+
+
+
+            'message' => [
+
+                'nullable',
+
+                'string',
+
+                'max:2000',
+
+            ],
+
+        ]);
+
+
+
+        $result = DB::transaction(
+
+            function () use (
+
+                $teacher,
+
+                $validated
+
+            ) {
+
+                /*
+
+                |--------------------------------------------------------------------------
+
+                | Lock Student
+
+                |--------------------------------------------------------------------------
+
+                |
+
+                | Serializes direct-request creation for this student.
+
+                |
+
+                */
+
+
+
+                $student = User::query()
+
+                    ->lockForUpdate()
+
+                    ->findOrFail(
+
+                        auth()->id()
+
+                    );
+
+
+
+                /*
+
+                |--------------------------------------------------------------------------
+
+                | Lock Teacher Profile
+
+                |--------------------------------------------------------------------------
+
+                */
+
+
+
+                $lockedTeacher = TeacherProfile::query()
+
+                    ->with('user')
+
+                    ->lockForUpdate()
+
+                    ->findOrFail(
+
+                        $teacher->id
+
+                    );
+
+
+
+                if (
+
+                    ! $lockedTeacher->is_verified ||
+
+                    ! $lockedTeacher->is_available ||
+
+                    ! $lockedTeacher->user ||
+
+                    $lockedTeacher->user->status !== 'active'
+
+                ) {
+
+                    return [
+
+                        'success' => false,
+
+                        'message' =>
+
+                            'This teacher is currently unavailable for direct tuition requests.',
+
+                    ];
+
+                }
+
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Required Tuition
+                |--------------------------------------------------------------------------
+                */
+
+                $lockedTuition = TuitionPost::query()
+                    ->lockForUpdate()
+                    ->find(
+                        $validated['tuition_post_id']
+                    );
+
+                if (
+                    ! $lockedTuition ||
+                    $lockedTuition->user_id !== $student->id ||
+                    $lockedTuition->status !== 'published'
+                ) {
+                    return [
+                        'success' => false,
+                        'message' => 'The selected tuition post is not available.',
+                    ];
+                }
+
+                $assignmentExists = TuitionAssignment::query()
+                    ->where(
+                        'tuition_post_id',
+                        $lockedTuition->id
+                    )
+                    ->exists();
+
+                if ($assignmentExists) {
+                    return [
+                        'success' => false,
+                        'message' => 'This tuition already has a final teacher assignment.',
+                    ];
+                }
+
+                /*
+                |--------------------------------------------------------------------------
+                | Close Legacy General Requests
+                |--------------------------------------------------------------------------
+                */
+
+                $legacyRequests = TeacherRequest::query()
+                    ->where(
+                        'student_user_id',
+                        $student->id
+                    )
+                    ->where(
+                        'teacher_profile_id',
+                        $lockedTeacher->id
+                    )
+                    ->whereNull('tuition_post_id')
+                    ->whereIn(
+                        'status',
+                        ['pending', 'accepted']
+                    )
+                    ->lockForUpdate()
+                    ->get();
+
+                foreach ($legacyRequests as $legacyRequest) {
+                    $legacyRequest->update([
+                        'status' => 'cancelled',
+                    ]);
+                }
+
+                /*
+
+                |--------------------------------------------------------------------------
+
+                | Duplicate Active Request Check Under Lock
+
+                |--------------------------------------------------------------------------
+
+                */
+
+
+
+                $existingRequest = TeacherRequest::query()
+
+                    ->where(
+
+                        'student_user_id',
+
+                        $student->id
+
+                    )
+
+                    ->where(
+
+                        'teacher_profile_id',
+
+                        $lockedTeacher->id
+
+                    )
+
+                    ->whereNotNull(
+
+                        'tuition_post_id'
+
+                    )
+
+                    ->whereIn(
+
+                        'status',
+
+                        [
+
+                            'pending',
+
+                            'accepted',
+
+                        ]
+
+                    )
+
+                    ->lockForUpdate()
+
+                    ->first();
+
+
+
+                if ($existingRequest) {
+
+                    return [
+
+                        'success' => false,
+
+                        'message' =>
+
+                            'You already have an active request with this teacher.',
+
+                    ];
+
+                }
+
+
+
+                /*
+
+                |--------------------------------------------------------------------------
+
+                | Create Request
+
+                |--------------------------------------------------------------------------
+
+                */
+
+
+
+                $teacherRequest =
+
+                    TeacherRequest::create([
+
+                        'student_user_id' =>
+
+                            $student->id,
+
+
+
+                        'teacher_profile_id' =>
+
+                            $lockedTeacher->id,
+
+
+
+                        'tuition_post_id' =>
+
+                            $lockedTuition->id,
+
+
+
+                        'message' =>
+
+                            $validated['message'] ?? null,
+
+
+
+                        'status' =>
+
+                            'pending',
+
+                    ]);
+
+
+
+                return [
+
+                    'success' => true,
+
+
+
+                    'request_id' =>
+
+                        $teacherRequest->id,
+
+                ];
+
+            },
+
+            3
+
+        );
+
+
+
+        if (! $result['success']) {
+
+            return back()->with(
+
+                'error',
+
+                $result['message']
+
+            );
+
+        }
+
+
+
+        $teacherRequest = TeacherRequest::query()
+
+            ->with([
+
+                'teacherProfile.user',
+
+                'student',
+
+                'tuitionPost',
+
+            ])
+
+            ->find(
+
+                $result['request_id']
+
+            );
+
+
+
+        if (
+
+            $teacherRequest
+
+                ?->teacherProfile
+
+                ?->user
+
+        ) {
+
+            UserNotificationService::send(
+
+                $teacherRequest
+
+                    ->teacherProfile
+
+                    ->user,
+
+
+
+                'New Direct Tuition Request',
+
+
+
+                auth()->user()->name
+
+                    .' sent you a direct tuition request for '
+
+                    .$teacherRequest->tuitionPost?->title
+
+                    .'.',
+
+
+
+                route(
+
+                    'teacher.requests.index'
+
+                ),
+
+
+
+                'teacher_request'
+
+            );
+
+        }
+
+
+
+        return redirect()
+
+            ->route(
+
+                'student.teacher-requests.index'
+
+            )
+
+            ->with(
+
+                'success',
+
+                'Teacher request sent successfully.'
+
+            );
+
+    }
+
+
+
+    public function requests(): View
+
+    {
+
+        $requests = TeacherRequest::query()
+
+            ->with([
+
+                'teacherProfile.user',
+
+                'teacherProfile.subjects',
+
+                'tuitionPost',
+
+            ])
+
+            ->where(
+
+                'student_user_id',
+
+                auth()->id()
+
+            )
+
+            ->latest()
+
+            ->paginate(15);
+
+
+
+        return view(
+
+            'student.teachers.requests',
+
+            compact('requests')
+
+        );
+
+    }
+
+
+
+    public function cancelRequest(
+
+        TeacherRequest $teacherRequest
+
+    ): RedirectResponse {
+
+        $this->authorizeRequestOwnership(
+
+            $teacherRequest
+
+        );
+
+
+
+        $result = DB::transaction(
+
+            function () use ($teacherRequest) {
+
+                $lockedRequest =
+
+                    TeacherRequest::query()
+
+                        ->with(
+
+                            'teacherProfile.user'
+
+                        )
+
+                        ->lockForUpdate()
+
+                        ->findOrFail(
+
+                            $teacherRequest->id
+
+                        );
+
+
+
+                if (
+
+                    $lockedRequest->student_user_id !==
+
+                    auth()->id()
+
+                ) {
+
+                    abort(403);
+
+                }
+
+
+
+                if (
+
+                    $lockedRequest->status !==
+
+                    'pending'
+
+                ) {
+
+                    return [
+
+                        'success' => false,
+
+                        'message' =>
+
+                            'Only pending requests can be cancelled.',
+
+                    ];
+
+                }
+
+
+
+                $lockedRequest->update([
+
+                    'status' =>
+
+                        'cancelled',
+
+                ]);
+
+
+
+                return [
+
+                    'success' => true,
+
+                    'request_id' =>
+
+                        $lockedRequest->id,
+
+                ];
+
+            },
+
+            3
+
+        );
+
+
+
+        if (! $result['success']) {
+
+            return back()->with(
+
+                'error',
+
+                $result['message']
+
+            );
+
+        }
+
+
+
+        $teacherRequest =
+
+            TeacherRequest::query()
+
+                ->with(
+
+                    'teacherProfile.user'
+
+                )
+
+                ->find(
+
+                    $result['request_id']
+
+                );
+
+
+
+        if (
+
+            $teacherRequest
+
+                ?->teacherProfile
+
+                ?->user
+
+        ) {
+
+            UserNotificationService::send(
+
+                $teacherRequest
+
+                    ->teacherProfile
+
+                    ->user,
+
+
+
+                'Teacher Request Cancelled',
+
+
+
+                auth()->user()->name
+
+                    .' cancelled the direct tuition request.',
+
+
+
+                route(
+
+                    'teacher.requests.index'
+
+                ),
+
+
+
+                'teacher_request'
+
+            );
+
+        }
+
+
+
+        return back()->with(
+
+            'success',
+
+            'Teacher request cancelled successfully.'
+
+        );
+
+    }
+
+
+
+    public function confirmTeacher(
+
+        TeacherRequest $teacherRequest
+
+    ): RedirectResponse {
+
+        $this->authorizeRequestOwnership(
+
+            $teacherRequest
+
+        );
+
+
+
+        $result = DB::transaction(
+
+            function () use ($teacherRequest) {
+
+
+
+                /*
+
+                |--------------------------------------------------------------------------
+
+                | Lock Student
+
+                |--------------------------------------------------------------------------
+
+                */
+
+
+
+                User::query()
+
+                    ->lockForUpdate()
+
+                    ->findOrFail(
+
+                        auth()->id()
+
+                    );
+
+
+
+                /*
+
+                |--------------------------------------------------------------------------
+
+                | Lock Request
+
+                |--------------------------------------------------------------------------
+
+                */
+
+
+
+                $lockedRequest =
+
+                    TeacherRequest::query()
+
+                        ->with([
+
+                            'teacherProfile.user',
+
+                            'tuitionPost',
+
+                        ])
+
+                        ->lockForUpdate()
+
+                        ->findOrFail(
+
+                            $teacherRequest->id
+
+                        );
+
+
+
+                if (
+
+                    $lockedRequest->student_user_id !==
+
+                    auth()->id()
+
+                ) {
+
+                    abort(403);
+
+                }
+
+
+
+                if (
+
+                    $lockedRequest->status !==
+
+                    'accepted'
+
+                ) {
+
+                    return [
+
+                        'success' => false,
+
+                        'message' =>
+
+                            'Only an accepted teacher request can be confirmed.',
+
+                    ];
+
+                }
+
+
+
+                if ($lockedRequest->confirmed_at) {
+
+                    return [
+
+                        'success' => false,
+
+                        'message' =>
+
+                            'This teacher has already been confirmed.',
+
+                    ];
+
+                }
+
+
+
+                /*
+
+                |--------------------------------------------------------------------------
+
+                | Lock Teacher
+
+                |--------------------------------------------------------------------------
+
+                */
+
+
+
+                $lockedTeacher =
+
+                    TeacherProfile::query()
+
+                        ->with('user')
+
+                        ->lockForUpdate()
+
+                        ->findOrFail(
+
+                            $lockedRequest
+
+                                ->teacher_profile_id
+
+                        );
+
+
+
+                if (
+
+                    ! $lockedTeacher->is_verified ||
+
+                    ! $lockedTeacher->is_available ||
+
+                    ! $lockedTeacher->user ||
+
+                    $lockedTeacher->user->status !== 'active'
+
+                ) {
+
+                    return [
+
+                        'success' => false,
+
+                        'message' =>
+
+                            'This teacher is no longer available or verified.',
+
+                    ];
+
+                }
+
+
+
+                if (! $lockedRequest->tuition_post_id) {
+
+                    return [
+
+                        'success' => false,
+
+                        'message' =>
+
+                            'A linked tuition post is required before confirming this teacher.',
+
+                    ];
+
+                }
+
+
+
+                /*
+
+                |--------------------------------------------------------------------------
+
+                | Lock Tuition
+
+                |--------------------------------------------------------------------------
+
+                */
+
+
+
+                $lockedTuition =
+
+                    TuitionPost::query()
+
+                        ->lockForUpdate()
+
+                        ->findOrFail(
+
+                            $lockedRequest
+
+                                ->tuition_post_id
+
+                        );
+
+
+
+                if (
+
+                    $lockedTuition->user_id !==
+
+                    auth()->id()
+
+                ) {
+
+                    abort(403);
+
+                }
+
+
+
+                if (
+
+                    $lockedTuition->status !==
+
+                    'published'
+
+                ) {
+
+                    return [
+
+                        'success' => false,
+
+                        'message' =>
+
+                            'This tuition is no longer available for teacher confirmation.',
+
+                    ];
+
+                }
+
+
+
+                /*
+
+                |--------------------------------------------------------------------------
+
+                | Final Assignment Protection
+
+                |--------------------------------------------------------------------------
+
+                */
+
+
+
+                $existingAssignment =
+
+                    TuitionAssignment::query()
+
+                        ->where(
+
+                            'tuition_post_id',
+
+                            $lockedTuition->id
+
+                        )
+
+                        ->lockForUpdate()
+
+                        ->first();
+
+
+
+                if ($existingAssignment) {
+
+                    return [
+
+                        'success' => false,
+
+                        'message' =>
+
+                            'A final teacher assignment already exists for this tuition.',
+
+                    ];
+
+                }
+
+
+
+                /*
+
+                |--------------------------------------------------------------------------
+
+                | Competing Applications
+
+                |--------------------------------------------------------------------------
+
+                */
+
+
+
+                $competingApplications =
+
+                    TuitionApplication::query()
+
+                        ->where(
+
+                            'tuition_post_id',
+
+                            $lockedTuition->id
+
+                        )
+
+                        ->whereIn(
+
+                            'status',
+
+                            [
+
+                                'pending',
+
+                                'shortlisted',
+
+                            ]
+
+                        )
+
+                        ->lockForUpdate()
+
+                        ->get();
+
+
+
+                /*
+
+                |--------------------------------------------------------------------------
+
+                | Other Direct Requests
+
+                |--------------------------------------------------------------------------
+
+                */
+
+
+
+                $otherRequests =
+
+                    TeacherRequest::query()
+
+                        ->where(
+
+                            'student_user_id',
+
+                            auth()->id()
+
+                        )
+
+                        ->where(
+
+                            'tuition_post_id',
+
+                            $lockedTuition->id
+
+                        )
+
+                        ->where(
+
+                            'id',
+
+                            '!=',
+
+                            $lockedRequest->id
+
+                        )
+
+                        ->whereIn(
+
+                            'status',
+
+                            [
+
+                                'pending',
+
+                                'accepted',
+
+                            ]
+
+                        )
+
+                        ->lockForUpdate()
+
+                        ->get();
+
+
+
+                /*
+
+                |--------------------------------------------------------------------------
+
+                | Confirm Direct Request
+
+                |--------------------------------------------------------------------------
+
+                */
+
+
+
+                $lockedRequest->update([
+
+                    'confirmed_at' =>
+
+                        now(),
+
+                ]);
+
+
+
+                /*
+
+                |--------------------------------------------------------------------------
+
+                | Create Final Assignment
+
+                |--------------------------------------------------------------------------
+
+                */
+
+
+
+                $assignment =
+
+                    TuitionAssignment::create([
+
+                        'tuition_post_id' =>
+
+                            $lockedTuition->id,
+
+
+
+                        'teacher_profile_id' =>
+
+                            $lockedTeacher->id,
+
+
+
+                        'student_user_id' =>
+
+                            $lockedTuition->user_id,
+
+
+
+                        'source' =>
+
+                            'direct_request',
+
+
+
+                        'tuition_application_id' =>
+
+                            null,
+
+
+
+                        'teacher_request_id' =>
+
+                            $lockedRequest->id,
+
+
+
+                        'status' =>
+
+                            'active',
+
+
+
+                        'assigned_at' =>
+
+                            now(),
+
+                    ]);
+
+
+
+                /*
+
+                |--------------------------------------------------------------------------
+
+                | Fill Tuition
+
+                |--------------------------------------------------------------------------
+
+                */
+
+
+
+                $lockedTuition->update([
+
+                    'status' =>
+
+                        'filled',
+
+                ]);
+
+
+
+                /*
+
+                |--------------------------------------------------------------------------
+
+                | Reject Competing Applications
+
+                |--------------------------------------------------------------------------
+
+                */
+
+
+
+                $rejectedApplicationIds = [];
+
+
+
+                foreach (
+
+                    $competingApplications
+
+                    as $application
+
+                ) {
+
+                    $application->update([
+
+                        'status' =>
+
+                            'rejected',
+
+                    ]);
+
+
+
+                    $rejectedApplicationIds[] =
+
+                        $application->id;
+
+                }
+
+
+
+                /*
+
+                |--------------------------------------------------------------------------
+
+                | Cancel Other Direct Requests
+
+                |--------------------------------------------------------------------------
+
+                */
+
+
+
+                $cancelledRequestIds = [];
+
+
+
+                foreach (
+
+                    $otherRequests
+
+                    as $otherRequest
+
+                ) {
+
+                    $otherRequest->update([
+
+                        'status' =>
+
+                            'cancelled',
+
+                    ]);
+
+
+
+                    $cancelledRequestIds[] =
+
+                        $otherRequest->id;
+
+                }
+
+
+
+                return [
+
+                    'success' => true,
+
+
+
+                    'assignment_id' =>
+
+                        $assignment->id,
+
+
+
+                    'confirmed_request_id' =>
+
+                        $lockedRequest->id,
+
+
+
+                    'rejected_application_ids' =>
+
+                        $rejectedApplicationIds,
+
+
+
+                    'cancelled_request_ids' =>
+
+                        $cancelledRequestIds,
+
+                ];
+
+            },
+
+            3
+
+        );
+
+
+
+        if (! $result['success']) {
+
+            return back()->with(
+
+                'error',
+
+                $result['message']
+
+            );
+
+        }
+
+
+
+        /*
+
+        |--------------------------------------------------------------------------
+
+        | Confirmed Teacher Notification
+
+        |--------------------------------------------------------------------------
+
+        */
+
+
+
+        $confirmedRequest =
+
+            TeacherRequest::query()
+
+                ->with([
+
+                    'teacherProfile.user',
+
+                    'tuitionPost',
+
+                ])
+
+                ->find(
+
+                    $result[
+
+                        'confirmed_request_id'
+
+                    ]
+
+                );
+
+
+
+        if (
+
+            $confirmedRequest
+
+                ?->teacherProfile
+
+                ?->user
+
+        ) {
+
+            UserNotificationService::send(
+
+                $confirmedRequest
+
+                    ->teacherProfile
+
+                    ->user,
+
+
+
+                'Tuition Assigned to You',
+
+
+
+                'The student confirmed you for '
+
+                    .$confirmedRequest
+
+                        ->tuitionPost
+
+                        ->title
+
+                    .'.',
+
+
+
+                route(
+
+                    'teacher.assignments.index'
+
+                ),
+
+
+
+                'tuition_assignment'
+
+            );
+
+        }
+
+
+
+        /*
+
+        |--------------------------------------------------------------------------
+
+        | Rejected Application Notifications
+
+        |--------------------------------------------------------------------------
+
+        */
+
+
+
+        if (
+
+            ! empty(
+
+                $result[
+
+                    'rejected_application_ids'
+
+                ]
+
+            )
+
+        ) {
+
+            $applications =
+
+                TuitionApplication::query()
+
+                    ->with([
+
+                        'teacherProfile.user',
+
+                        'tuitionPost',
+
+                    ])
+
+                    ->whereIn(
+
+                        'id',
+
+                        $result[
+
+                            'rejected_application_ids'
+
+                        ]
+
+                    )
+
+                    ->get();
+
+
+
+            foreach (
+
+                $applications
+
+                as $application
+
+            ) {
+
+                $teacherUser =
+
+                    $application
+
+                        ->teacherProfile
+
+                        ?->user;
+
+
+
+                if (! $teacherUser) {
+
+                    continue;
+
+                }
+
+
+
+                UserNotificationService::send(
+
+                    $teacherUser,
+
+
+
+                    'Application Status Updated',
+
+
+
+                    'Another teacher was selected for '
+
+                        .$application
+
+                            ->tuitionPost
+
+                            ->title
+
+                        .'.',
+
+
+
+                    route(
+
+                        'teacher.tuitions.applications'
+
+                    ),
+
+
+
+                    'tuition_application'
+
+                );
+
+            }
+
+        }
+
+
+
+        /*
+
+        |--------------------------------------------------------------------------
+
+        | Cancelled Direct Request Notifications
+
+        |--------------------------------------------------------------------------
+
+        */
+
+
+
+        if (
+
+            ! empty(
+
+                $result[
+
+                    'cancelled_request_ids'
+
+                ]
+
+            )
+
+        ) {
+
+            $cancelledRequests =
+
+                TeacherRequest::query()
+
+                    ->with([
+
+                        'teacherProfile.user',
+
+                        'tuitionPost',
+
+                    ])
+
+                    ->whereIn(
+
+                        'id',
+
+                        $result[
+
+                            'cancelled_request_ids'
+
+                        ]
+
+                    )
+
+                    ->get();
+
+
+
+            foreach (
+
+                $cancelledRequests
+
+                as $cancelledRequest
+
+            ) {
+
+                $teacherUser =
+
+                    $cancelledRequest
+
+                        ->teacherProfile
+
+                        ?->user;
+
+
+
+                if (! $teacherUser) {
+
+                    continue;
+
+                }
+
+
+
+                UserNotificationService::send(
+
+                    $teacherUser,
+
+
+
+                    'Direct Request Closed',
+
+
+
+                    'Another teacher was selected for '
+
+                        .(
+
+                            $cancelledRequest
+
+                                ->tuitionPost
+
+                                ?->title
+
+                            ?? 'the tuition'
+
+                        )
+
+                        .'.',
+
+
+
+                    route(
+
+                        'teacher.requests.index'
+
+                    ),
+
+
+
+                    'teacher_request'
+
+                );
+
+            }
+
+        }
+
+
+
+        return redirect()
+
+            ->route(
+
+                'student.assignments.index'
+
+            )
+
+            ->with(
+
+                'success',
+
+                'Teacher confirmed and final tuition assignment created successfully.'
+
+            );
+
+    }
+
+
+
+    private function authorizeRequestOwnership(
+
+        TeacherRequest $teacherRequest
+
+    ): void {
+
+        abort_unless(
+
+            $teacherRequest->student_user_id ===
+
+            auth()->id(),
+
+            403
+
+        );
+
+    }
+
+}
+@extends('layouts.app')
+
+@section('title', 'Find Teachers - Tuition Hub')
+
+@php
+    $pageTitle = 'Find Teachers';
+    $pageSubtitle = 'Student Marketplace';
+@endphp
+
+@section('content')
+
+    <section class="rounded-3xl bg-gradient-to-br from-indigo-700 via-indigo-600 to-violet-600 p-6 text-white sm:p-8">
+
+        <div class="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+
+            <div>
+                <p class="text-sm font-semibold text-indigo-100">
+                    Teacher Marketplace
+                </p>
+
+                <h2 class="mt-2 text-3xl font-black">
+                    Find the right teacher
+                </h2>
+
+                <p class="mt-3 max-w-2xl text-sm leading-6 text-indigo-100">
+                    Browse verified and currently available teachers
+                    based on your preferred teaching needs.
+                </p>
+            </div>
+
+            <a
+                href="{{ route('student.teacher-requests.index') }}"
+                class="inline-flex justify-center rounded-xl border border-white/20 bg-white/10 px-5 py-3 text-sm font-bold text-white transition hover:bg-white/20"
+            >
+                My Teacher Requests
+            </a>
+
+        </div>
+
+    </section>
+
+    <section class="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+
+        <form
+            method="GET"
+            action="{{ route('student.teachers.index') }}"
+            class="grid gap-4 md:grid-cols-2 xl:grid-cols-4"
+        >
+
+            <div class="xl:col-span-2">
+
+                <label
+                    for="search"
+                    class="mb-2 block text-sm font-semibold text-slate-700"
+                >
+                    Search
+                </label>
+
+                <input
+                    id="search"
+                    type="text"
+                    name="search"
+                    value="{{ request('search') }}"
+                    placeholder="Teacher name, university or department"
+                    class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
+                >
+
+            </div>
+
+            <div>
+
+                <label
+                    for="gender"
+                    class="mb-2 block text-sm font-semibold text-slate-700"
+                >
+                    Gender
+                </label>
+
+                <select
+                    id="gender"
+                    name="gender"
+                    class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
+                >
+                    <option value="">Any Gender</option>
+
+                    <option
+                        value="male"
+                        @selected(request('gender') === 'male')
+                    >
+                        Male
+                    </option>
+
+                    <option
+                        value="female"
+                        @selected(request('gender') === 'female')
+                    >
+                        Female
+                    </option>
+
+                    <option
+                        value="other"
+                        @selected(request('gender') === 'other')
+                    >
+                        Other
+                    </option>
+                </select>
+
+            </div>
+
+            <div>
+
+                <label
+                    for="teaching_mode"
+                    class="mb-2 block text-sm font-semibold text-slate-700"
+                >
+                    Teaching Mode
+                </label>
+
+                <select
+                    id="teaching_mode"
+                    name="teaching_mode"
+                    class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
+                >
+                    <option value="">Any Mode</option>
+
+                    <option
+                        value="offline"
+                        @selected(request('teaching_mode') === 'offline')
+                    >
+                        Offline
+                    </option>
+
+                    <option
+                        value="online"
+                        @selected(request('teaching_mode') === 'online')
+                    >
+                        Online
+                    </option>
+                </select>
+
+            </div>
+
+            <div class="flex flex-wrap gap-3 md:col-span-2 xl:col-span-4">
+
+                <button
+                    type="submit"
+                    class="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-indigo-700"
+                >
+                    Search Teachers
+                </button>
+
+                @if(
+                    request()->filled('search') ||
+                    request()->filled('gender') ||
+                    request()->filled('teaching_mode') ||
+                    request()->filled('subject') ||
+                    request()->filled('location')
+                )
+
+                    <a
+                        href="{{ route('student.teachers.index') }}"
+                        class="rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+                    >
+                        Clear Filters
+                    </a>
+
+                @endif
+
+            </div>
+
+        </form>
+
+    </section>
+
+    <section class="mt-6">
+
+        <div class="mb-4 flex items-center justify-between">
+
+            <div>
+                <h3 class="text-xl font-bold text-slate-900">
+                    Available Teachers
+                </h3>
+
+                <p class="mt-1 text-sm text-slate-500">
+                    {{ $teachers->total() }} teacher(s) found
+                </p>
+            </div>
+
+        </div>
+
+        <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+
+            @forelse($teachers as $teacher)
+
+                <article class="flex flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-indigo-200 hover:shadow-md">
+
+                    <div class="flex items-start gap-4">
+
+                        <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-indigo-50 text-lg font-black text-indigo-700">
+                            {{
+                                strtoupper(
+                                    substr(
+                                        $teacher->user?->name ?? 'T',
+                                        0,
+                                        1
+                                    )
+                                )
+                            }}
+                        </div>
+
+                        <div class="min-w-0 flex-1">
+
+                            <div class="flex flex-wrap items-center gap-2">
+
+                                <h4 class="truncate text-lg font-bold text-slate-900">
+                                    {{ $teacher->user?->name ?? 'Teacher' }}
+                                </h4>
+
+                                @if($teacher->is_verified)
+                                    <span class="rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-bold uppercase text-emerald-700">
+                                        Verified
+                                    </span>
+                                @endif
+
+                            </div>
+
+                            <p class="mt-1 truncate text-sm text-slate-500">
+                                {{ $teacher->university ?? 'University not specified' }}
+                            </p>
+
+                            @if($teacher->department)
+                                <p class="mt-0.5 truncate text-xs text-slate-400">
+                                    {{ $teacher->department }}
+                                </p>
+                            @endif
+
+                        </div>
+
+                    </div>
+
+                    <div class="mt-5 grid grid-cols-2 gap-3">
+
+                        <div class="rounded-xl bg-slate-50 p-3">
+                            <p class="text-xs text-slate-400">
+                                Experience
+                            </p>
+
+                            <p class="mt-1 text-sm font-semibold text-slate-800">
+                                {{ $teacher->experience_years ?? 0 }} year(s)
+                            </p>
+                        </div>
+
+                        <div class="rounded-xl bg-slate-50 p-3">
+                            <p class="text-xs text-slate-400">
+                                Mode
+                            </p>
+
+                            <p class="mt-1 text-sm font-semibold text-slate-800">
+                                {{
+                                    ucwords(
+                                        str_replace(
+                                            '_',
+                                            ' ',
+                                            $teacher->teaching_mode ?? 'Not specified'
+                                        )
+                                    )
+                                }}
+                            </p>
+                        </div>
+
+                    </div>
+
+                    <div class="mt-5">
+
+                        <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                            Subjects
+                        </p>
+
+                        <div class="mt-2 flex flex-wrap gap-2">
+
+                            @forelse($teacher->subjects->take(4) as $subject)
+
+                                <span class="rounded-lg bg-indigo-50 px-2.5 py-1 text-xs font-medium text-indigo-700">
+                                    {{ $subject->name }}
+                                </span>
+
+                            @empty
+
+                                <span class="text-sm text-slate-400">
+                                    No subjects specified
+                                </span>
+
+                            @endforelse
+
+                            @if($teacher->subjects->count() > 4)
+
+                                <span class="rounded-lg bg-slate-100 px-2.5 py-1 text-xs text-slate-500">
+                                    +{{ $teacher->subjects->count() - 4 }}
+                                </span>
+
+                            @endif
+
+                        </div>
+
+                    </div>
+
+                    <div class="mt-5">
+
+                        <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                            Preferred Areas
+                        </p>
+
+                        <p class="mt-2 text-sm text-slate-600">
+                            {{
+                                $teacher->locations
+                                    ->pluck('area')
+                                    ->take(3)
+                                    ->join(', ')
+                                ?: 'Not specified'
+                            }}
+                        </p>
+
+                    </div>
+
+                    <div class="mt-auto pt-6">
+
+                        <a
+                            href="{{ route(
+                                'student.teachers.show',
+                                $teacher
+                            ) }}"
+                            class="flex w-full items-center justify-center rounded-xl bg-slate-900 px-4 py-3 text-sm font-bold text-white transition hover:bg-indigo-600"
+                        >
+                            View Teacher
+                        </a>
+
+                    </div>
+
+                </article>
+
+            @empty
+
+                <div class="md:col-span-2 xl:col-span-3 rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-14 text-center">
+
+                    <h3 class="font-bold text-slate-800">
+                        No teachers found
+                    </h3>
+
+                    <p class="mt-2 text-sm text-slate-500">
+                        Try changing your search or filters.
+                    </p>
+
+                </div>
+
+            @endforelse
+
+        </div>
+
+        @if($teachers->hasPages())
+
+            <div class="mt-8">
+                {{ $teachers->links() }}
+            </div>
+
+        @endif
+
+    </section>
+
+@endsection

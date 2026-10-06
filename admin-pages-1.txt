@@ -1,0 +1,2518 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>User Management - Tuition Hub Admin</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100">
+
+<div class="min-h-screen">
+
+    <nav class="bg-white border-b shadow-sm">
+
+        <div class="max-w-7xl mx-auto px-6 py-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+
+            <a
+                href="{{ route('admin.dashboard') }}"
+                class="text-xl font-bold text-indigo-600"
+            >
+                Tuition Hub Admin
+            </a>
+
+            <div class="flex flex-wrap items-center gap-4">
+
+                <a
+                    href="{{ route('admin.users.index') }}"
+                    class="text-indigo-600 font-medium"
+                >
+                    Users
+                </a>
+
+                <a
+                    href="{{ route('admin.teachers.index') }}"
+                    class="text-gray-700 hover:text-indigo-600"
+                >
+                    Teachers
+                </a>
+
+                <a
+                    href="{{ route('admin.tuitions.index') }}"
+                    class="text-gray-700 hover:text-indigo-600"
+                >
+                    Tuitions
+                </a>
+
+                <a
+                    href="{{ route('admin.payments.index') }}"
+                    class="text-gray-700 hover:text-indigo-600"
+                >
+                    Payments
+                </a>
+
+                <a
+                    href="{{ route('admin.subscription-plans.index') }}"
+                    class="text-gray-700 hover:text-indigo-600"
+                >
+                    Plans
+                </a>
+
+                <a
+                    href="{{ route('notifications.index') }}"
+                    class="text-gray-700 hover:text-indigo-600"
+                >
+                    Notifications
+                </a>
+
+            </div>
+
+        </div>
+
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-6 py-8">
+
+        <div class="mb-7">
+
+            <h1 class="text-3xl font-bold">
+                User Management
+            </h1>
+
+            <p class="text-gray-500 mt-2">
+                Search and manage Teacher and Student / Guardian accounts.
+            </p>
+
+        </div>
+
+        @if(session('success'))
+
+            <div class="mb-6 bg-green-100 border border-green-200 text-green-700 p-4 rounded-lg">
+                {{ session('success') }}
+            </div>
+
+        @endif
+
+        @if(session('error'))
+
+            <div class="mb-6 bg-red-100 border border-red-200 text-red-700 p-4 rounded-lg">
+                {{ session('error') }}
+            </div>
+
+        @endif
+
+        {{-- Search and Filters --}}
+        <form
+            method="GET"
+            action="{{ route('admin.users.index') }}"
+            class="bg-white border rounded-xl shadow-sm p-5"
+        >
+
+            <div class="grid md:grid-cols-4 gap-4">
+
+                <input
+                    type="text"
+                    name="search"
+                    value="{{ request('search') }}"
+                    placeholder="Name, email or phone..."
+                    class="border rounded-lg px-3 py-2"
+                >
+
+                <select
+                    name="role"
+                    class="border rounded-lg px-3 py-2"
+                >
+
+                    <option value="">
+                        All Roles
+                    </option>
+
+                    <option
+                        value="teacher"
+                        @selected(request('role') === 'teacher')
+                    >
+                        Teacher
+                    </option>
+
+                    <option
+                        value="student"
+                        @selected(request('role') === 'student')
+                    >
+                        Student / Guardian
+                    </option>
+
+                </select>
+
+                <select
+                    name="status"
+                    class="border rounded-lg px-3 py-2"
+                >
+
+                    <option value="">
+                        All Statuses
+                    </option>
+
+                    <option
+                        value="active"
+                        @selected(request('status') === 'active')
+                    >
+                        Active
+                    </option>
+
+                    <option
+                        value="inactive"
+                        @selected(request('status') === 'inactive')
+                    >
+                        Inactive
+                    </option>
+
+                    <option
+                        value="suspended"
+                        @selected(request('status') === 'suspended')
+                    >
+                        Suspended
+                    </option>
+
+                </select>
+
+                <button
+                    type="submit"
+                    class="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-4 py-2"
+                >
+                    Search
+                </button>
+
+            </div>
+
+            @if(
+                request('search') ||
+                request('role') ||
+                request('status')
+            )
+
+                <div class="mt-4">
+
+                    <a
+                        href="{{ route('admin.users.index') }}"
+                        class="text-sm text-indigo-600 hover:underline"
+                    >
+                        Clear Filters
+                    </a>
+
+                </div>
+
+            @endif
+
+        </form>
+
+        <div class="space-y-5 mt-7">
+
+            @forelse($users as $user)
+
+                <div class="bg-white border rounded-xl shadow-sm p-6">
+
+                    <div class="flex flex-col xl:flex-row xl:justify-between gap-6">
+
+                        <div class="flex-1">
+
+                            <div class="flex flex-wrap items-center gap-3">
+
+                                <h2 class="text-xl font-bold">
+                                    {{ $user->name }}
+                                </h2>
+
+                                <span class="
+                                    text-xs font-medium px-3 py-1 rounded-full
+
+                                    @if($user->role === 'teacher')
+                                        bg-indigo-100 text-indigo-700
+                                    @else
+                                        bg-purple-100 text-purple-700
+                                    @endif
+                                ">
+                                    {{ $user->role === 'teacher'
+                                        ? 'TEACHER'
+                                        : 'STUDENT / GUARDIAN'
+                                    }}
+                                </span>
+
+                                <span class="
+                                    text-xs font-medium px-3 py-1 rounded-full
+
+                                    @if($user->status === 'active')
+                                        bg-green-100 text-green-700
+                                    @elseif($user->status === 'inactive')
+                                        bg-yellow-100 text-yellow-700
+                                    @else
+                                        bg-red-100 text-red-700
+                                    @endif
+                                ">
+                                    {{ strtoupper($user->status) }}
+                                </span>
+
+                                @if(
+                                    $user->role === 'teacher' &&
+                                    $user->teacherProfile?->is_verified
+                                )
+
+                                    <span class="bg-blue-100 text-blue-700 text-xs font-medium px-3 py-1 rounded-full">
+                                        VERIFIED
+                                    </span>
+
+                                @endif
+
+                            </div>
+
+                            <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 mt-6 text-sm">
+
+                                <div>
+
+                                    <p class="text-gray-500">
+                                        Email
+                                    </p>
+
+                                    <p class="font-medium break-all">
+                                        {{ $user->email }}
+                                    </p>
+
+                                </div>
+
+                                <div>
+
+                                    <p class="text-gray-500">
+                                        Phone
+                                    </p>
+
+                                    <p class="font-medium">
+                                        {{ $user->phone ?? 'N/A' }}
+                                    </p>
+
+                                </div>
+
+                                <div>
+
+                                    <p class="text-gray-500">
+                                        Registered
+                                    </p>
+
+                                    <p class="font-medium">
+                                        {{ $user->created_at->format('d M Y') }}
+                                    </p>
+
+                                </div>
+
+                            </div>
+
+                            @if($user->role === 'teacher')
+
+                                <div class="mt-6 bg-gray-50 border rounded-lg p-4">
+
+                                    <h3 class="font-semibold">
+                                        Teacher Profile
+                                    </h3>
+
+                                    <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-4 text-sm">
+
+                                        <div>
+
+                                            <p class="text-gray-500">
+                                                University
+                                            </p>
+
+                                            <p class="font-medium">
+                                                {{ $user->teacherProfile?->university ?? 'Not specified' }}
+                                            </p>
+
+                                        </div>
+
+                                        <div>
+
+                                            <p class="text-gray-500">
+                                                Department
+                                            </p>
+
+                                            <p class="font-medium">
+                                                {{ $user->teacherProfile?->department ?? 'Not specified' }}
+                                            </p>
+
+                                        </div>
+
+                                        <div>
+
+                                            <p class="text-gray-500">
+                                                Experience
+                                            </p>
+
+                                            <p class="font-medium">
+                                                {{ $user->teacherProfile?->experience_years ?? 0 }}
+                                                year(s)
+                                            </p>
+
+                                        </div>
+
+                                    </div>
+
+                                    <div class="mt-4">
+
+                                        <p class="text-gray-500 text-sm">
+                                            Subjects
+                                        </p>
+
+                                        <div class="flex flex-wrap gap-2 mt-2">
+
+                                            @forelse(
+                                                $user->teacherProfile?->subjects ?? collect()
+                                                as $subject
+                                            )
+
+                                                <span class="bg-white border text-xs px-2 py-1 rounded">
+                                                    {{ $subject->name }}
+                                                </span>
+
+                                            @empty
+
+                                                <span class="text-sm text-gray-500">
+                                                    No subjects selected.
+                                                </span>
+
+                                            @endforelse
+
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+                            @else
+
+                                <div class="mt-6 bg-gray-50 border rounded-lg p-4">
+
+                                    <h3 class="font-semibold">
+                                        Student / Guardian Profile
+                                    </h3>
+
+                                    <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-4 text-sm">
+
+                                        <div>
+
+                                            <p class="text-gray-500">
+                                                Guardian
+                                            </p>
+
+                                            <p class="font-medium">
+                                                {{ $user->studentProfile?->guardian_name ?? 'Not specified' }}
+                                            </p>
+
+                                        </div>
+
+                                        <div>
+
+                                            <p class="text-gray-500">
+                                                Class
+                                            </p>
+
+                                            <p class="font-medium">
+                                                {{ $user->studentProfile?->class_level ?? 'Not specified' }}
+                                            </p>
+
+                                        </div>
+
+                                        <div>
+
+                                            <p class="text-gray-500">
+                                                Medium
+                                            </p>
+
+                                            <p class="font-medium">
+                                                {{ $user->studentProfile?->medium
+                                                    ? ucfirst(
+                                                        str_replace(
+                                                            '_',
+                                                            ' ',
+                                                            $user->studentProfile->medium
+                                                        )
+                                                    )
+                                                    : 'Not specified'
+                                                }}
+                                            </p>
+
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+                            @endif
+
+                        </div>
+
+                        {{-- Account Actions --}}
+                        <div class="xl:w-52">
+
+                            @if($user->status !== 'active')
+
+                                <form
+                                    method="POST"
+                                    action="{{ route(
+                                        'admin.users.activate',
+                                        $user
+                                    ) }}"
+                                >
+
+                                    @csrf
+                                    @method('PATCH')
+
+                                    <button
+                                        type="submit"
+                                        onclick="return confirm('Activate this account?')"
+                                        class="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-lg"
+                                    >
+                                        Activate
+                                    </button>
+
+                                </form>
+
+                            @endif
+
+                            @if($user->status !== 'inactive')
+
+                                <form
+                                    method="POST"
+                                    action="{{ route(
+                                        'admin.users.inactive',
+                                        $user
+                                    ) }}"
+                                    class="mt-3"
+                                >
+
+                                    @csrf
+                                    @method('PATCH')
+
+                                    <button
+                                        type="submit"
+                                        onclick="return confirm('Mark this account as inactive?')"
+                                        class="w-full border border-yellow-500 text-yellow-700 px-4 py-3 rounded-lg"
+                                    >
+                                        Set Inactive
+                                    </button>
+
+                                </form>
+
+                            @endif
+
+                            @if($user->status !== 'suspended')
+
+                                <form
+                                    method="POST"
+                                    action="{{ route(
+                                        'admin.users.suspend',
+                                        $user
+                                    ) }}"
+                                    class="mt-3"
+                                >
+
+                                    @csrf
+                                    @method('PATCH')
+
+                                    <button
+                                        type="submit"
+                                        onclick="return confirm('Suspend this account? The user will no longer be able to use protected areas of the platform.')"
+                                        class="w-full border border-red-500 text-red-600 px-4 py-3 rounded-lg"
+                                    >
+                                        Suspend
+                                    </button>
+
+                                </form>
+
+                            @endif
+
+                            @if($user->role === 'teacher')
+
+                                <a
+                                    href="{{ route(
+                                        'admin.teachers.index',
+                                        [
+                                            'search' => $user->email,
+                                        ]
+                                    ) }}"
+                                    class="block mt-3 text-center bg-indigo-50 text-indigo-700 px-4 py-3 rounded-lg"
+                                >
+                                    Verification
+                                </a>
+
+                            @endif
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            @empty
+
+                <div class="bg-white border rounded-xl p-10 text-center text-gray-500">
+                    No users found.
+                </div>
+
+            @endforelse
+
+        </div>
+
+        @if($users->hasPages())
+
+            <div class="mt-8">
+                {{ $users->links() }}
+            </div>
+
+        @endif
+
+    </main>
+
+</div>
+
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Teacher Verification - Tuition Hub</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100">
+
+<div class="min-h-screen">
+
+    <nav class="bg-white border-b shadow-sm">
+
+        <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+
+            <a
+                href="{{ route('admin.dashboard') }}"
+                class="text-xl font-bold text-indigo-600"
+            >
+                Tuition Hub Admin
+            </a>
+
+            <a
+                href="{{ route('admin.dashboard') }}"
+                class="text-indigo-600"
+            >
+                Dashboard
+            </a>
+
+        </div>
+
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-6 py-8">
+
+        <div class="mb-6">
+
+            <h1 class="text-2xl font-bold">
+                Teacher Verification
+            </h1>
+
+            <p class="text-gray-500 mt-1">
+                Review and verify teacher profiles.
+            </p>
+
+        </div>
+
+        @if(session('success'))
+
+            <div class="mb-6 bg-green-100 border border-green-200 text-green-700 p-4 rounded-lg">
+                {{ session('success') }}
+            </div>
+
+        @endif
+
+        {{-- Filters --}}
+        <form
+            method="GET"
+            action="{{ route('admin.teachers.index') }}"
+            class="bg-white rounded-xl border shadow-sm p-5 mb-6"
+        >
+
+            <div class="grid md:grid-cols-3 gap-4">
+
+                <input
+                    type="text"
+                    name="search"
+                    value="{{ request('search') }}"
+                    placeholder="Search name, email or phone..."
+                    class="border rounded-lg px-3 py-2"
+                >
+
+                <select
+                    name="status"
+                    class="border rounded-lg px-3 py-2"
+                >
+
+                    <option value="">
+                        All Verification Status
+                    </option>
+
+                    <option
+                        value="pending"
+                        @selected(request('status') === 'pending')
+                    >
+                        Pending
+                    </option>
+
+                    <option
+                        value="verified"
+                        @selected(request('status') === 'verified')
+                    >
+                        Verified
+                    </option>
+
+                </select>
+
+                <button
+                    type="submit"
+                    class="bg-indigo-600 text-white rounded-lg px-4 py-2"
+                >
+                    Filter
+                </button>
+
+            </div>
+
+        </form>
+
+        <div class="space-y-5">
+
+            @forelse($teachers as $teacher)
+
+                <div class="bg-white rounded-xl border shadow-sm p-6">
+
+                    <div class="flex flex-col lg:flex-row lg:justify-between gap-6">
+
+                        <div class="flex-1">
+
+                            <div class="flex flex-wrap items-center gap-3">
+
+                                <h2 class="text-xl font-bold">
+                                    {{ $teacher->user?->name ?? 'Teacher' }}
+                                </h2>
+
+                                @if($teacher->is_verified)
+
+                                    <span class="bg-green-100 text-green-700 text-xs px-2 py-1 rounded">
+                                        VERIFIED
+                                    </span>
+
+                                @else
+
+                                    <span class="bg-yellow-100 text-yellow-700 text-xs px-2 py-1 rounded">
+                                        PENDING
+                                    </span>
+
+                                @endif
+
+                            </div>
+
+                            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mt-5 text-sm">
+
+                                <div>
+                                    <p class="text-gray-500">
+                                        Email
+                                    </p>
+
+                                    <p class="font-medium">
+                                        {{ $teacher->user?->email ?? 'N/A' }}
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <p class="text-gray-500">
+                                        Phone
+                                    </p>
+
+                                    <p class="font-medium">
+                                        {{ $teacher->user?->phone ?? 'N/A' }}
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <p class="text-gray-500">
+                                        Gender
+                                    </p>
+
+                                    <p class="font-medium">
+                                        {{ $teacher->gender
+                                            ? ucfirst($teacher->gender)
+                                            : 'Not specified'
+                                        }}
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <p class="text-gray-500">
+                                        University
+                                    </p>
+
+                                    <p class="font-medium">
+                                        {{ $teacher->university ?? 'Not specified' }}
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <p class="text-gray-500">
+                                        Department
+                                    </p>
+
+                                    <p class="font-medium">
+                                        {{ $teacher->department ?? 'Not specified' }}
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <p class="text-gray-500">
+                                        Experience
+                                    </p>
+
+                                    <p class="font-medium">
+                                        {{ $teacher->experience_years }} year(s)
+                                    </p>
+                                </div>
+
+                            </div>
+
+                            <div class="mt-5">
+
+                                <p class="text-sm text-gray-500">
+                                    Subjects
+                                </p>
+
+                                <div class="flex flex-wrap gap-2 mt-2">
+
+                                    @forelse($teacher->subjects as $subject)
+
+                                        <span class="bg-indigo-50 text-indigo-700 px-3 py-1 rounded-lg text-sm">
+                                            {{ $subject->name }}
+                                        </span>
+
+                                    @empty
+
+                                        <span class="text-sm text-gray-500">
+                                            No subjects added.
+                                        </span>
+
+                                    @endforelse
+
+                                </div>
+
+                            </div>
+
+                            <div class="mt-5">
+
+                                <p class="text-sm text-gray-500">
+                                    Preferred Areas
+                                </p>
+
+                                <div class="flex flex-wrap gap-2 mt-2">
+
+                                    @forelse($teacher->locations as $location)
+
+                                        <span class="bg-gray-100 text-gray-700 px-3 py-1 rounded-lg text-sm">
+                                            {{ $location->area }}
+                                        </span>
+
+                                    @empty
+
+                                        <span class="text-sm text-gray-500">
+                                            No areas added.
+                                        </span>
+
+                                    @endforelse
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                        <div class="lg:w-48">
+
+                            @if($teacher->is_verified)
+
+                                <form
+                                    method="POST"
+                                    action="{{ route(
+                                        'admin.teachers.unverify',
+                                        $teacher
+                                    ) }}"
+                                >
+
+                                    @csrf
+                                    @method('PATCH')
+
+                                    <button
+                                        type="submit"
+                                        onclick="return confirm('Remove verification from this teacher?')"
+                                        class="w-full border border-red-500 text-red-600 px-4 py-3 rounded-lg"
+                                    >
+                                        Remove Verification
+                                    </button>
+
+                                </form>
+
+                            @else
+
+                                <form
+                                    method="POST"
+                                    action="{{ route(
+                                        'admin.teachers.verify',
+                                        $teacher
+                                    ) }}"
+                                >
+
+                                    @csrf
+                                    @method('PATCH')
+
+                                    <button
+                                        type="submit"
+                                        onclick="return confirm('Verify this teacher?')"
+                                        class="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-lg"
+                                    >
+                                        Verify Teacher
+                                    </button>
+
+                                </form>
+
+                            @endif
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            @empty
+
+                <div class="bg-white rounded-xl p-10 text-center text-gray-500">
+                    No teachers found.
+                </div>
+
+            @endforelse
+
+        </div>
+
+        @if($teachers->hasPages())
+
+            <div class="mt-8">
+                {{ $teachers->links() }}
+            </div>
+
+        @endif
+
+    </main>
+
+</div>
+
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Verification Documents - Tuition Hub</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100">
+
+<div class="min-h-screen">
+
+    <nav class="bg-white border-b">
+
+        <div class="max-w-7xl mx-auto px-6 py-4 flex flex-wrap justify-between gap-4">
+
+            <a
+                href="{{ route('admin.dashboard') }}"
+                class="text-xl font-bold text-indigo-600"
+            >
+                Tuition Hub Admin
+            </a>
+
+            <div class="flex flex-wrap gap-5 text-sm">
+
+                <a href="{{ route('admin.dashboard') }}">
+                    Dashboard
+                </a>
+
+                <a href="{{ route('admin.teachers.index') }}">
+                    Teachers
+                </a>
+
+                <a
+                    href="{{ route(
+                        'admin.verification-documents.index'
+                    ) }}"
+                    class="text-indigo-600 font-semibold"
+                >
+                    Verification Documents
+                </a>
+
+            </div>
+
+        </div>
+
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-6 py-8">
+
+        <div>
+
+            <h1 class="text-3xl font-bold">
+                Teacher Verification Documents
+            </h1>
+
+            <p class="text-gray-500 mt-2">
+                Securely review documents submitted by teachers.
+            </p>
+
+        </div>
+
+        @if(session('success'))
+
+            <div class="mt-6 bg-green-100 text-green-700 p-4 rounded-lg">
+                {{ session('success') }}
+            </div>
+
+        @endif
+
+        @if(session('error'))
+
+            <div class="mt-6 bg-red-100 text-red-700 p-4 rounded-lg">
+                {{ session('error') }}
+            </div>
+
+        @endif
+
+        @if($errors->any())
+
+            <div class="mt-6 bg-red-100 text-red-700 p-4 rounded-lg">
+
+                <ul class="list-disc pl-5">
+
+                    @foreach($errors->all() as $error)
+
+                        <li>{{ $error }}</li>
+
+                    @endforeach
+
+                </ul>
+
+            </div>
+
+        @endif
+
+        <form
+            method="GET"
+            action="{{ route(
+                'admin.verification-documents.index'
+            ) }}"
+            class="bg-white border rounded-xl p-5 mt-7"
+        >
+
+            <div class="grid md:grid-cols-4 gap-4">
+
+                <input
+                    type="text"
+                    name="search"
+                    value="{{ request('search') }}"
+                    placeholder="Teacher / document..."
+                    class="border rounded-lg px-4 py-3"
+                >
+
+                <select
+                    name="status"
+                    class="border rounded-lg px-4 py-3"
+                >
+
+                    <option value="">
+                        All Status
+                    </option>
+
+                    <option
+                        value="pending"
+                        @selected(request('status') === 'pending')
+                    >
+                        Pending
+                    </option>
+
+                    <option
+                        value="approved"
+                        @selected(request('status') === 'approved')
+                    >
+                        Approved
+                    </option>
+
+                    <option
+                        value="rejected"
+                        @selected(request('status') === 'rejected')
+                    >
+                        Rejected
+                    </option>
+
+                </select>
+
+                <select
+                    name="type"
+                    class="border rounded-lg px-4 py-3"
+                >
+
+                    <option value="">
+                        All Types
+                    </option>
+
+                    <option
+                        value="nid"
+                        @selected(request('type') === 'nid')
+                    >
+                        NID
+                    </option>
+
+                    <option
+                        value="student_id"
+                        @selected(request('type') === 'student_id')
+                    >
+                        Student ID
+                    </option>
+
+                    <option
+                        value="certificate"
+                        @selected(request('type') === 'certificate')
+                    >
+                        Certificate
+                    </option>
+
+                    <option
+                        value="other"
+                        @selected(request('type') === 'other')
+                    >
+                        Other
+                    </option>
+
+                </select>
+
+                <button
+                    type="submit"
+                    class="bg-indigo-600 text-white rounded-lg px-5 py-3"
+                >
+                    Filter
+                </button>
+
+            </div>
+
+        </form>
+
+        <div class="space-y-5 mt-7">
+
+            @forelse($documents as $document)
+
+                <article class="bg-white border rounded-xl p-6">
+
+                    <div class="flex flex-col xl:flex-row xl:justify-between gap-6">
+
+                        <div class="flex-1">
+
+                            <div class="flex flex-wrap items-center gap-3">
+
+                                <h2 class="text-xl font-bold">
+                                    {{ $document
+                                        ->teacherProfile
+                                        ?->user
+                                        ?->name ?? 'Unknown Teacher'
+                                    }}
+                                </h2>
+
+                                <span class="
+                                    text-xs px-3 py-1 rounded-full
+
+                                    @if($document->status === 'approved')
+                                        bg-green-100 text-green-700
+                                    @elseif($document->status === 'rejected')
+                                        bg-red-100 text-red-700
+                                    @else
+                                        bg-yellow-100 text-yellow-700
+                                    @endif
+                                ">
+                                    {{ strtoupper(
+                                        $document->status
+                                    ) }}
+                                </span>
+
+                            </div>
+
+                            <div class="mt-4 text-sm space-y-2 text-gray-600">
+
+                                <p>
+                                    <strong>Email:</strong>
+
+                                    {{ $document
+                                        ->teacherProfile
+                                        ?->user
+                                        ?->email ?? 'N/A'
+                                    }}
+                                </p>
+
+                                <p>
+                                    <strong>Document:</strong>
+
+                                    {{ $document->document_name
+                                        ?: ucwords(
+                                            str_replace(
+                                                '_',
+                                                ' ',
+                                                $document->document_type
+                                            )
+                                        )
+                                    }}
+                                </p>
+
+                                <p>
+                                    <strong>Type:</strong>
+
+                                    {{ ucwords(
+                                        str_replace(
+                                            '_',
+                                            ' ',
+                                            $document->document_type
+                                        )
+                                    ) }}
+                                </p>
+
+                                <p>
+                                    <strong>Submitted:</strong>
+
+                                    {{ $document
+                                        ->created_at
+                                        ?->format(
+                                            'd M Y, h:i A'
+                                        )
+                                    }}
+                                </p>
+
+                                @if($document->reviewer)
+
+                                    <p>
+                                        <strong>Reviewed By:</strong>
+                                        {{ $document->reviewer->name }}
+                                    </p>
+
+                                @endif
+
+                            </div>
+
+                            @if($document->admin_note)
+
+                                <div class="mt-4 bg-gray-50 rounded-lg p-4">
+
+                                    <strong class="text-sm">
+                                        Admin Note
+                                    </strong>
+
+                                    <p class="text-sm mt-1">
+                                        {{ $document->admin_note }}
+                                    </p>
+
+                                </div>
+
+                            @endif
+
+                        </div>
+
+                        <div class="xl:w-80 space-y-3">
+
+                            <a
+                                href="{{ route(
+                                    'admin.verification-documents.view',
+                                    $document
+                                ) }}"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="block w-full text-center border bg-gray-50 hover:bg-gray-100 px-5 py-3 rounded-lg"
+                            >
+                                Open Secure Document
+                            </a>
+
+                            @if($document->status !== 'approved')
+
+                                <form
+                                    method="POST"
+                                    action="{{ route(
+                                        'admin.verification-documents.approve',
+                                        $document
+                                    ) }}"
+                                >
+
+                                    @csrf
+                                    @method('PATCH')
+
+                                    <button
+                                        type="submit"
+                                        class="w-full bg-green-600 hover:bg-green-700 text-white px-5 py-3 rounded-lg"
+                                    >
+                                        Approve Document
+                                    </button>
+
+                                </form>
+
+                            @endif
+
+                            @if($document->status === 'pending')
+
+                                <form
+                                    method="POST"
+                                    action="{{ route(
+                                        'admin.verification-documents.reject',
+                                        $document
+                                    ) }}"
+                                    class="border rounded-lg p-4"
+                                >
+
+                                    @csrf
+                                    @method('PATCH')
+
+                                    <label class="block text-sm font-medium mb-2">
+                                        Rejection Reason
+                                    </label>
+
+                                    <textarea
+                                        name="admin_note"
+                                        rows="3"
+                                        required
+                                        class="w-full border rounded-lg px-3 py-2"
+                                    ></textarea>
+
+                                    <button
+                                        type="submit"
+                                        class="w-full bg-red-600 hover:bg-red-700 text-white px-4 py-2.5 rounded-lg mt-3"
+                                    >
+                                        Reject Document
+                                    </button>
+
+                                </form>
+
+                            @endif
+
+                        </div>
+
+                    </div>
+
+                </article>
+
+            @empty
+
+                <div class="bg-white border rounded-xl p-12 text-center text-gray-500">
+                    No verification documents found.
+                </div>
+
+            @endforelse
+
+        </div>
+
+        <div class="mt-7">
+            {{ $documents->links() }}
+        </div>
+
+    </main>
+
+</div>
+
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Tuition Moderation - Tuition Hub</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100">
+
+<div class="min-h-screen">
+
+    <nav class="bg-white border-b shadow-sm">
+
+        <div class="max-w-7xl mx-auto px-6 py-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+
+            <a
+                href="{{ route('admin.dashboard') }}"
+                class="text-xl font-bold text-indigo-600"
+            >
+                Tuition Hub Admin
+            </a>
+
+            <div class="flex flex-wrap items-center gap-4">
+
+                <a
+                    href="{{ route('admin.teachers.index') }}"
+                    class="text-gray-700 hover:text-indigo-600"
+                >
+                    Teachers
+                </a>
+
+                <a
+                    href="{{ route('admin.tuitions.index') }}"
+                    class="text-indigo-600 font-medium"
+                >
+                    Tuition Moderation
+                </a>
+
+                <a
+                    href="{{ route('admin.dashboard') }}"
+                    class="text-gray-700 hover:text-indigo-600"
+                >
+                    Dashboard
+                </a>
+
+            </div>
+
+        </div>
+
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-6 py-8">
+
+        <div class="mb-6">
+
+            <h1 class="text-2xl font-bold text-gray-900">
+                Tuition Moderation
+            </h1>
+
+            <p class="text-gray-500 mt-1">
+                Review and manage tuition posts across the platform.
+            </p>
+
+        </div>
+
+        @if(session('success'))
+
+            <div class="mb-6 bg-green-100 border border-green-200 text-green-700 p-4 rounded-lg">
+                {{ session('success') }}
+            </div>
+
+        @endif
+
+        @if(session('error'))
+
+            <div class="mb-6 bg-red-100 border border-red-200 text-red-700 p-4 rounded-lg">
+                {{ session('error') }}
+            </div>
+
+        @endif
+
+        {{-- Filters --}}
+        <form
+            method="GET"
+            action="{{ route('admin.tuitions.index') }}"
+            class="bg-white border shadow-sm rounded-xl p-5 mb-6"
+        >
+
+            <div class="grid md:grid-cols-4 gap-4">
+
+                <input
+                    type="text"
+                    name="search"
+                    value="{{ request('search') }}"
+                    placeholder="Search title, ID, student..."
+                    class="border rounded-lg px-3 py-2"
+                >
+
+                <select
+                    name="status"
+                    class="border rounded-lg px-3 py-2"
+                >
+
+                    <option value="">
+                        All Statuses
+                    </option>
+
+                    @foreach([
+                        'draft' => 'Draft',
+                        'pending' => 'Pending',
+                        'published' => 'Published',
+                        'filled' => 'Filled',
+                        'closed' => 'Closed',
+                    ] as $value => $label)
+
+                        <option
+                            value="{{ $value }}"
+                            @selected(request('status') === $value)
+                        >
+                            {{ $label }}
+                        </option>
+
+                    @endforeach
+
+                </select>
+
+                <select
+                    name="teaching_mode"
+                    class="border rounded-lg px-3 py-2"
+                >
+
+                    <option value="">
+                        All Modes
+                    </option>
+
+                    <option
+                        value="offline"
+                        @selected(request('teaching_mode') === 'offline')
+                    >
+                        Offline
+                    </option>
+
+                    <option
+                        value="online"
+                        @selected(request('teaching_mode') === 'online')
+                    >
+                        Online
+                    </option>
+
+                    <option
+                        value="both"
+                        @selected(request('teaching_mode') === 'both')
+                    >
+                        Both
+                    </option>
+
+                </select>
+
+                <button
+                    type="submit"
+                    class="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-4 py-2"
+                >
+                    Filter
+                </button>
+
+            </div>
+
+        </form>
+
+        <div class="space-y-5">
+
+            @forelse($tuitions as $tuition)
+
+                <div class="bg-white rounded-xl border shadow-sm p-6">
+
+                    <div class="flex flex-col lg:flex-row lg:justify-between gap-6">
+
+                        <div class="flex-1">
+
+                            <div class="flex flex-wrap items-center gap-3">
+
+                                <h2 class="text-xl font-bold">
+                                    {{ $tuition->title }}
+                                </h2>
+
+                                <span class="
+                                    text-xs px-3 py-1 rounded-full font-medium
+
+                                    @if($tuition->status === 'published')
+                                        bg-green-100 text-green-700
+                                    @elseif($tuition->status === 'pending')
+                                        bg-yellow-100 text-yellow-700
+                                    @elseif($tuition->status === 'filled')
+                                        bg-blue-100 text-blue-700
+                                    @elseif($tuition->status === 'closed')
+                                        bg-gray-200 text-gray-700
+                                    @else
+                                        bg-gray-100 text-gray-600
+                                    @endif
+                                ">
+                                    {{ strtoupper($tuition->status) }}
+                                </span>
+
+                            </div>
+
+                            <p class="text-sm text-gray-500 mt-2">
+                                Tuition ID:
+                                {{ $tuition->tuition_code }}
+                            </p>
+
+                            <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6 text-sm">
+
+                                <div>
+                                    <p class="text-gray-500">
+                                        Student / Guardian
+                                    </p>
+
+                                    <p class="font-medium">
+                                        {{ $tuition->user?->name ?? 'N/A' }}
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <p class="text-gray-500">
+                                        Email
+                                    </p>
+
+                                    <p class="font-medium">
+                                        {{ $tuition->user?->email ?? 'N/A' }}
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <p class="text-gray-500">
+                                        Phone
+                                    </p>
+
+                                    <p class="font-medium">
+                                        {{ $tuition->user?->phone ?? 'N/A' }}
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <p class="text-gray-500">
+                                        Class
+                                    </p>
+
+                                    <p class="font-medium">
+                                        {{ $tuition->class_level }}
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <p class="text-gray-500">
+                                        Location
+                                    </p>
+
+                                    <p class="font-medium">
+                                        {{ $tuition->location?->area ?? 'Not specified' }}
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <p class="text-gray-500">
+                                        Salary
+                                    </p>
+
+                                    <p class="font-medium">
+                                        ৳{{ number_format((float) $tuition->salary) }}
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <p class="text-gray-500">
+                                        Mode
+                                    </p>
+
+                                    <p class="font-medium">
+                                        {{ ucfirst($tuition->teaching_mode) }}
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <p class="text-gray-500">
+                                        Applications
+                                    </p>
+
+                                    <p class="font-medium">
+                                        {{ $tuition->applications_count }}
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <p class="text-gray-500">
+                                        Posted
+                                    </p>
+
+                                    <p class="font-medium">
+                                        {{ $tuition->created_at->format('d M Y') }}
+                                    </p>
+                                </div>
+
+                            </div>
+
+                            <div class="mt-5">
+
+                                <p class="text-sm text-gray-500">
+                                    Subjects
+                                </p>
+
+                                <div class="flex flex-wrap gap-2 mt-2">
+
+                                    @forelse($tuition->subjects as $subject)
+
+                                        <span class="bg-indigo-50 text-indigo-700 px-3 py-1 rounded-lg text-sm">
+                                            {{ $subject->name }}
+                                        </span>
+
+                                    @empty
+
+                                        <span class="text-sm text-gray-500">
+                                            No subjects selected.
+                                        </span>
+
+                                    @endforelse
+
+                                </div>
+
+                            </div>
+
+                            @if($tuition->requirements)
+
+                                <div class="mt-5 bg-gray-50 p-4 rounded-lg">
+
+                                    <p class="text-sm text-gray-500">
+                                        Requirements
+                                    </p>
+
+                                    <p class="text-sm text-gray-700 mt-2 whitespace-pre-line">
+                                        {{ $tuition->requirements }}
+                                    </p>
+
+                                </div>
+
+                            @endif
+
+                        </div>
+
+                        {{-- Admin Actions --}}
+                        <div class="lg:w-52">
+
+                            @if(
+                                ! in_array(
+                                    $tuition->status,
+                                    ['published', 'filled'],
+                                    true
+                                )
+                            )
+
+                                <form
+                                    method="POST"
+                                    action="{{ route(
+                                        'admin.tuitions.publish',
+                                        $tuition
+                                    ) }}"
+                                >
+
+                                    @csrf
+                                    @method('PATCH')
+
+                                    <button
+                                        type="submit"
+                                        onclick="return confirm('Publish this tuition?')"
+                                        class="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-lg"
+                                    >
+                                        Publish
+                                    </button>
+
+                                </form>
+
+                            @endif
+
+                            @if(
+                                ! in_array(
+                                    $tuition->status,
+                                    ['pending', 'filled'],
+                                    true
+                                )
+                            )
+
+                                <form
+                                    method="POST"
+                                    action="{{ route(
+                                        'admin.tuitions.pending',
+                                        $tuition
+                                    ) }}"
+                                    class="mt-3"
+                                >
+
+                                    @csrf
+                                    @method('PATCH')
+
+                                    <button
+                                        type="submit"
+                                        onclick="return confirm('Move this tuition to pending?')"
+                                        class="w-full bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-3 rounded-lg"
+                                    >
+                                        Move to Pending
+                                    </button>
+
+                                </form>
+
+                            @endif
+
+                            @if(
+                                ! in_array(
+                                    $tuition->status,
+                                    ['closed', 'filled'],
+                                    true
+                                )
+                            )
+
+                                <form
+                                    method="POST"
+                                    action="{{ route(
+                                        'admin.tuitions.close',
+                                        $tuition
+                                    ) }}"
+                                    class="mt-3"
+                                >
+
+                                    @csrf
+                                    @method('PATCH')
+
+                                    <button
+                                        type="submit"
+                                        onclick="return confirm('Close this tuition?')"
+                                        class="w-full border border-red-500 text-red-600 px-4 py-3 rounded-lg"
+                                    >
+                                        Close
+                                    </button>
+
+                                </form>
+
+                            @endif
+
+                            @if($tuition->status === 'filled')
+
+                                <div class="bg-blue-100 text-blue-700 rounded-lg p-4 text-center font-medium">
+                                    Tuition Filled
+                                </div>
+
+                            @endif
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            @empty
+
+                <div class="bg-white rounded-xl p-10 text-center text-gray-500">
+                    No tuition posts found.
+                </div>
+
+            @endforelse
+
+        </div>
+
+        @if($tuitions->hasPages())
+
+            <div class="mt-8">
+                {{ $tuitions->links() }}
+            </div>
+
+        @endif
+
+    </main>
+
+</div>
+
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Tuition Assignments - Tuition Hub</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100">
+
+<div class="min-h-screen">
+
+    <nav class="bg-white border-b">
+
+        <div class="max-w-7xl mx-auto px-6 py-4 flex flex-wrap items-center justify-between gap-4">
+
+            <a
+                href="{{ route('admin.dashboard') }}"
+                class="font-bold text-xl text-indigo-600"
+            >
+                Tuition Hub Admin
+            </a>
+
+            <div class="flex flex-wrap items-center gap-5 text-sm">
+
+                <a
+                    href="{{ route('admin.dashboard') }}"
+                    class="text-gray-600"
+                >
+                    Dashboard
+                </a>
+
+                <a
+                    href="{{ route('admin.users.index') }}"
+                    class="text-gray-600"
+                >
+                    Users
+                </a>
+
+                <a
+                    href="{{ route('admin.teachers.index') }}"
+                    class="text-gray-600"
+                >
+                    Teachers
+                </a>
+
+                <a
+                    href="{{ route('admin.tuitions.index') }}"
+                    class="text-gray-600"
+                >
+                    Tuitions
+                </a>
+
+                <a
+                    href="{{ route('admin.assignments.index') }}"
+                    class="text-indigo-600 font-semibold"
+                >
+                    Assignments
+                </a>
+
+                <a
+                    href="{{ route('admin.payments.index') }}"
+                    class="text-gray-600"
+                >
+                    Payments
+                </a>
+
+            </div>
+
+        </div>
+
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-6 py-8">
+
+        <div>
+
+            <h1 class="text-3xl font-bold">
+                Final Tuition Assignments
+            </h1>
+
+            <p class="text-gray-500 mt-2">
+                Monitor all teacher-student tuition assignments across the platform.
+            </p>
+
+        </div>
+
+        {{-- Statistics --}}
+        <section class="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 mt-7">
+
+            <div class="bg-white border rounded-xl p-5">
+
+                <p class="text-sm text-gray-500">
+                    Total Assignments
+                </p>
+
+                <p class="text-3xl font-bold mt-2">
+                    {{ number_format(
+                        $totalAssignments
+                    ) }}
+                </p>
+
+            </div>
+
+            <div class="bg-white border rounded-xl p-5">
+
+                <p class="text-sm text-gray-500">
+                    Active
+                </p>
+
+                <p class="text-3xl font-bold text-green-600 mt-2">
+                    {{ number_format(
+                        $activeAssignments
+                    ) }}
+                </p>
+
+            </div>
+
+            <div class="bg-white border rounded-xl p-5">
+
+                <p class="text-sm text-gray-500">
+                    Completed
+                </p>
+
+                <p class="text-3xl font-bold text-blue-600 mt-2">
+                    {{ number_format(
+                        $completedAssignments
+                    ) }}
+                </p>
+
+            </div>
+
+            <div class="bg-white border rounded-xl p-5">
+
+                <p class="text-sm text-gray-500">
+                    Cancelled
+                </p>
+
+                <p class="text-3xl font-bold text-red-600 mt-2">
+                    {{ number_format(
+                        $cancelledAssignments
+                    ) }}
+                </p>
+
+            </div>
+
+        </section>
+
+        <section class="grid md:grid-cols-3 gap-5 mt-5">
+
+            <div class="bg-white border rounded-xl p-5">
+
+                <p class="text-sm text-gray-500">
+                    Via Teacher Application
+                </p>
+
+                <p class="text-2xl font-bold mt-2">
+                    {{ number_format(
+                        $applicationAssignments
+                    ) }}
+                </p>
+
+            </div>
+
+            <div class="bg-white border rounded-xl p-5">
+
+                <p class="text-sm text-gray-500">
+                    Via Direct Request
+                </p>
+
+                <p class="text-2xl font-bold mt-2">
+                    {{ number_format(
+                        $directAssignments
+                    ) }}
+                </p>
+
+            </div>
+
+            <div class="bg-white border rounded-xl p-5">
+
+                <p class="text-sm text-gray-500">
+                    Completion Rate
+                </p>
+
+                <p class="text-2xl font-bold text-indigo-600 mt-2">
+                    {{ $completionRate }}%
+                </p>
+
+                <p class="text-xs text-gray-400 mt-1">
+                    Completed vs completed + cancelled
+                </p>
+
+            </div>
+
+        </section>
+
+        {{-- Filter --}}
+        <form
+            method="GET"
+            action="{{ route('admin.assignments.index') }}"
+            class="bg-white border rounded-xl p-5 mt-7"
+        >
+
+            <div class="grid md:grid-cols-4 gap-4">
+
+                <input
+                    type="text"
+                    name="search"
+                    value="{{ request('search') }}"
+                    placeholder="Tuition / teacher / student..."
+                    class="border rounded-lg px-4 py-3"
+                >
+
+                <select
+                    name="status"
+                    class="border rounded-lg px-4 py-3"
+                >
+
+                    <option value="">
+                        All Status
+                    </option>
+
+                    <option
+                        value="active"
+                        @selected(
+                            request('status') === 'active'
+                        )
+                    >
+                        Active
+                    </option>
+
+                    <option
+                        value="completed"
+                        @selected(
+                            request('status') === 'completed'
+                        )
+                    >
+                        Completed
+                    </option>
+
+                    <option
+                        value="cancelled"
+                        @selected(
+                            request('status') === 'cancelled'
+                        )
+                    >
+                        Cancelled
+                    </option>
+
+                </select>
+
+                <select
+                    name="source"
+                    class="border rounded-lg px-4 py-3"
+                >
+
+                    <option value="">
+                        All Sources
+                    </option>
+
+                    <option
+                        value="application"
+                        @selected(
+                            request('source') === 'application'
+                        )
+                    >
+                        Teacher Application
+                    </option>
+
+                    <option
+                        value="direct_request"
+                        @selected(
+                            request('source') === 'direct_request'
+                        )
+                    >
+                        Direct Request
+                    </option>
+
+                </select>
+
+                <button
+                    type="submit"
+                    class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-3 rounded-lg"
+                >
+                    Search / Filter
+                </button>
+
+            </div>
+
+            @if(
+                request()->filled('search') ||
+                request()->filled('status') ||
+                request()->filled('source')
+            )
+
+                <div class="mt-4">
+
+                    <a
+                        href="{{ route(
+                            'admin.assignments.index'
+                        ) }}"
+                        class="text-sm text-indigo-600"
+                    >
+                        Clear Filters
+                    </a>
+
+                </div>
+
+            @endif
+
+        </form>
+
+        {{-- Assignments --}}
+        <div class="space-y-5 mt-7">
+
+            @forelse($assignments as $assignment)
+
+                <article class="bg-white border rounded-xl overflow-hidden">
+
+                    <div class="p-6">
+
+                        <div class="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-6">
+
+                            <div class="flex-1">
+
+                                <div class="flex flex-wrap items-center gap-3">
+
+                                    <h2 class="text-xl font-bold">
+                                        {{ $assignment
+                                            ->tuitionPost
+                                            ?->title ?? 'Unknown Tuition'
+                                        }}
+                                    </h2>
+
+                                    <span class="
+                                        text-xs px-3 py-1 rounded-full font-medium
+
+                                        @if($assignment->status === 'active')
+                                            bg-green-100 text-green-700
+                                        @elseif($assignment->status === 'completed')
+                                            bg-blue-100 text-blue-700
+                                        @else
+                                            bg-red-100 text-red-700
+                                        @endif
+                                    ">
+                                        {{ strtoupper(
+                                            $assignment->status
+                                        ) }}
+                                    </span>
+
+                                </div>
+
+                                <p class="text-sm text-gray-500 mt-2">
+
+                                    Tuition Code:
+
+                                    <strong class="text-gray-700">
+                                        {{ $assignment
+                                            ->tuitionPost
+                                            ?->tuition_code ?? 'N/A'
+                                        }}
+                                    </strong>
+
+                                </p>
+
+                                <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-5">
+
+                                    <div class="bg-gray-50 rounded-lg p-4">
+
+                                        <p class="text-xs text-gray-500">
+                                            Class
+                                        </p>
+
+                                        <p class="font-medium mt-1">
+                                            {{ $assignment
+                                                ->tuitionPost
+                                                ?->class_level ?? 'N/A'
+                                            }}
+                                        </p>
+
+                                    </div>
+
+                                    <div class="bg-gray-50 rounded-lg p-4">
+
+                                        <p class="text-xs text-gray-500">
+                                            Salary
+                                        </p>
+
+                                        <p class="font-medium mt-1">
+
+                                            @if(
+                                                $assignment
+                                                    ->tuitionPost
+                                                    ?->salary !== null
+                                            )
+
+                                                ৳{{ number_format(
+                                                    (float) $assignment
+                                                        ->tuitionPost
+                                                        ->salary
+                                                ) }}
+
+                                            @else
+
+                                                N/A
+
+                                            @endif
+
+                                        </p>
+
+                                    </div>
+
+                                    <div class="bg-gray-50 rounded-lg p-4">
+
+                                        <p class="text-xs text-gray-500">
+                                            Teaching Mode
+                                        </p>
+
+                                        <p class="font-medium mt-1">
+                                            {{ ucfirst(
+                                                $assignment
+                                                    ->tuitionPost
+                                                    ?->teaching_mode
+                                                ?? 'N/A'
+                                            ) }}
+                                        </p>
+
+                                    </div>
+
+                                    <div class="bg-gray-50 rounded-lg p-4">
+
+                                        <p class="text-xs text-gray-500">
+                                            Source
+                                        </p>
+
+                                        <p class="font-medium mt-1">
+
+                                            {{ $assignment->source === 'application'
+                                                ? 'Teacher Application'
+                                                : 'Direct Request'
+                                            }}
+
+                                        </p>
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                            <div class="xl:w-64">
+
+                                <div class="border rounded-lg p-4">
+
+                                    <p class="text-xs text-gray-500">
+                                        Assigned At
+                                    </p>
+
+                                    <p class="font-semibold mt-1">
+                                        {{ $assignment
+                                            ->assigned_at
+                                            ?->format(
+                                                'd M Y, h:i A'
+                                            )
+                                            ?? 'N/A'
+                                        }}
+                                    </p>
+
+                                    @if($assignment->completed_at)
+
+                                        <div class="mt-4">
+
+                                            <p class="text-xs text-gray-500">
+                                                Completed At
+                                            </p>
+
+                                            <p class="font-medium mt-1">
+                                                {{ $assignment
+                                                    ->completed_at
+                                                    ->format(
+                                                        'd M Y, h:i A'
+                                                    )
+                                                }}
+                                            </p>
+
+                                        </div>
+
+                                    @endif
+
+                                    @if($assignment->cancelled_at)
+
+                                        <div class="mt-4">
+
+                                            <p class="text-xs text-gray-500">
+                                                Cancelled At
+                                            </p>
+
+                                            <p class="font-medium mt-1">
+                                                {{ $assignment
+                                                    ->cancelled_at
+                                                    ->format(
+                                                        'd M Y, h:i A'
+                                                    )
+                                                }}
+                                            </p>
+
+                                        </div>
+
+                                    @endif
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                        {{-- Student and Teacher --}}
+                        <div class="grid lg:grid-cols-2 gap-5 mt-6">
+
+                            <section class="border rounded-xl p-5">
+
+                                <p class="text-xs uppercase tracking-wide text-gray-400">
+                                    Student / Guardian
+                                </p>
+
+                                <h3 class="font-bold text-lg mt-2">
+                                    {{ $assignment
+                                        ->student
+                                        ?->name ?? 'N/A'
+                                    }}
+                                </h3>
+
+                                <div class="mt-3 text-sm text-gray-600 space-y-1">
+
+                                    <p>
+                                        <strong>Email:</strong>
+                                        {{ $assignment
+                                            ->student
+                                            ?->email ?? 'N/A'
+                                        }}
+                                    </p>
+
+                                    <p>
+                                        <strong>Phone:</strong>
+                                        {{ $assignment
+                                            ->student
+                                            ?->phone ?? 'N/A'
+                                        }}
+                                    </p>
+
+                                    @if(
+                                        $assignment
+                                            ->student
+                                            ?->studentProfile
+                                            ?->guardian_name
+                                    )
+
+                                        <p>
+                                            <strong>Guardian:</strong>
+
+                                            {{ $assignment
+                                                ->student
+                                                ->studentProfile
+                                                ->guardian_name
+                                            }}
+                                        </p>
+
+                                    @endif
+
+                                </div>
+
+                            </section>
+
+                            <section class="border rounded-xl p-5">
+
+                                <p class="text-xs uppercase tracking-wide text-gray-400">
+                                    Assigned Teacher
+                                </p>
+
+                                <h3 class="font-bold text-lg mt-2">
+                                    {{ $assignment
+                                        ->teacherProfile
+                                        ?->user
+                                        ?->name ?? 'N/A'
+                                    }}
+                                </h3>
+
+                                <div class="mt-3 text-sm text-gray-600 space-y-1">
+
+                                    <p>
+                                        <strong>Email:</strong>
+
+                                        {{ $assignment
+                                            ->teacherProfile
+                                            ?->user
+                                            ?->email ?? 'N/A'
+                                        }}
+                                    </p>
+
+                                    <p>
+                                        <strong>Phone:</strong>
+
+                                        {{ $assignment
+                                            ->teacherProfile
+                                            ?->user
+                                            ?->phone ?? 'N/A'
+                                        }}
+                                    </p>
+
+                                    <p>
+                                        <strong>University:</strong>
+
+                                        {{ $assignment
+                                            ->teacherProfile
+                                            ?->university ?? 'N/A'
+                                        }}
+                                    </p>
+
+                                    <p>
+                                        <strong>Department:</strong>
+
+                                        {{ $assignment
+                                            ->teacherProfile
+                                            ?->department ?? 'N/A'
+                                        }}
+                                    </p>
+
+                                </div>
+
+                            </section>
+
+                        </div>
+
+                    </div>
+
+                </article>
+
+            @empty
+
+                <div class="bg-white border rounded-xl p-12 text-center">
+
+                    <h2 class="text-xl font-bold">
+                        No tuition assignments found
+                    </h2>
+
+                    <p class="text-gray-500 mt-2">
+                        Final teacher assignments will appear here.
+                    </p>
+
+                </div>
+
+            @endforelse
+
+        </div>
+
+        <div class="mt-7">
+            {{ $assignments->links() }}
+        </div>
+
+    </main>
+
+</div>
+
+</body>
+</html>

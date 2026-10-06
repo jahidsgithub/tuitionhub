@@ -1,0 +1,1559 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Find Tuition - Tuition Hub</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100">
+
+<div class="min-h-screen">
+
+    <nav class="bg-white border-b shadow-sm">
+
+        <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+
+            <a
+                href="{{ route('teacher.dashboard') }}"
+                class="text-xl font-bold text-indigo-600"
+            >
+                Tuition Hub
+            </a>
+
+            <div class="flex gap-4 items-center">
+
+                <a
+                    href="{{ route('teacher.tuitions.applications') }}"
+                    class="text-gray-700 hover:text-indigo-600"
+                >
+                    My Applications
+                </a>
+
+                <a
+                    href="{{ route('teacher.profile.edit') }}"
+                    class="text-gray-700 hover:text-indigo-600"
+                >
+                    Profile
+                </a>
+
+                <a
+                    href="{{ route('teacher.dashboard') }}"
+                    class="text-indigo-600"
+                >
+                    Dashboard
+                </a>
+
+            </div>
+
+        </div>
+
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-6 py-8">
+
+        <div class="mb-6">
+
+            <h1 class="text-2xl font-bold">
+                Find Tuition
+            </h1>
+
+            <p class="text-gray-500 mt-1">
+                Browse available tuition opportunities.
+            </p>
+
+        </div>
+
+        <form
+            method="GET"
+            action="{{ route('teacher.tuitions.index') }}"
+            class="bg-white rounded-xl shadow-sm p-5 mb-6"
+        >
+
+            <div class="grid md:grid-cols-3 gap-4">
+
+                <input
+                    type="text"
+                    name="search"
+                    value="{{ request('search') }}"
+                    placeholder="Search tuition..."
+                    class="border rounded-lg px-3 py-2"
+                >
+
+                <select
+                    name="teaching_mode"
+                    class="border rounded-lg px-3 py-2"
+                >
+
+                    <option value="">
+                        All Modes
+                    </option>
+
+                    <option
+                        value="offline"
+                        @selected(request('teaching_mode') === 'offline')
+                    >
+                        Offline
+                    </option>
+
+                    <option
+                        value="online"
+                        @selected(request('teaching_mode') === 'online')
+                    >
+                        Online
+                    </option>
+
+                    <option
+                        value="both"
+                        @selected(request('teaching_mode') === 'both')
+                    >
+                        Both
+                    </option>
+
+                </select>
+
+                <button
+                    type="submit"
+                    class="bg-indigo-600 text-white rounded-lg px-4 py-2"
+                >
+                    Search
+                </button>
+
+            </div>
+
+        </form>
+
+        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+            @forelse($tuitions as $tuition)
+
+                <div class="bg-white rounded-xl shadow-sm p-6">
+
+                    <div class="flex justify-between gap-3">
+
+                        <h2 class="font-bold text-lg">
+                            {{ $tuition->title }}
+                        </h2>
+
+                        <span class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded h-fit">
+                            {{ strtoupper($tuition->status) }}
+                        </span>
+
+                    </div>
+
+                    <p class="text-xs text-gray-500 mt-2">
+                        {{ $tuition->tuition_code }}
+                    </p>
+
+                    <div class="mt-4 space-y-2 text-sm">
+
+                        <p>
+                            <strong>Class:</strong>
+                            {{ $tuition->class_level }}
+                        </p>
+
+                        <p>
+                            <strong>Location:</strong>
+                            {{ $tuition->location?->area ?? 'Not specified' }}
+                        </p>
+
+                        <p>
+                            <strong>Subjects:</strong>
+                            {{ $tuition->subjects->pluck('name')->join(', ') }}
+                        </p>
+
+                        <p>
+                            <strong>Salary:</strong>
+                            ৳{{ number_format((float) $tuition->salary) }}/month
+                        </p>
+
+                        <p>
+                            <strong>Days:</strong>
+                            {{ $tuition->days_per_week }}/week
+                        </p>
+
+                        <p>
+                            <strong>Mode:</strong>
+                            {{ ucfirst($tuition->teaching_mode) }}
+                        </p>
+
+                    </div>
+
+                    <a
+                        href="{{ route('teacher.tuitions.show', $tuition) }}"
+                        class="block mt-5 text-center bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-lg"
+                    >
+                        View Details
+                    </a>
+
+                </div>
+
+            @empty
+
+                <div class="md:col-span-2 lg:col-span-3 bg-white rounded-xl p-10 text-center">
+
+                    <h2 class="font-semibold text-xl">
+                        No tuition found
+                    </h2>
+
+                    <p class="text-gray-500 mt-2">
+                        Try changing your search filters.
+                    </p>
+
+                </div>
+
+            @endforelse
+
+        </div>
+
+        <div class="mt-8">
+            {{ $tuitions->links() }}
+        </div>
+
+    </main>
+
+</div>
+
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>{{ $tuition->title }} - Tuition Hub</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100">
+
+<div class="min-h-screen">
+
+    <nav class="bg-white border-b shadow-sm">
+
+        <div class="max-w-6xl mx-auto px-6 py-4 flex flex-wrap justify-between gap-4">
+
+            <a
+                href="{{ route('teacher.dashboard') }}"
+                class="text-xl font-bold text-indigo-600"
+            >
+                Tuition Hub
+            </a>
+
+            <div class="flex flex-wrap gap-4">
+
+                <a
+                    href="{{ route('teacher.tuitions.index') }}"
+                    class="text-indigo-600"
+                >
+                    Find Tuition
+                </a>
+
+                <a
+                    href="{{ route('teacher.subscription.index') }}"
+                    class="text-gray-700 hover:text-indigo-600"
+                >
+                    Subscription
+                </a>
+
+            </div>
+
+        </div>
+
+    </nav>
+
+    <main class="max-w-4xl mx-auto px-6 py-8">
+
+        @if(session('success'))
+
+            <div class="mb-6 bg-green-100 text-green-700 border border-green-200 p-4 rounded-lg">
+                {{ session('success') }}
+            </div>
+
+        @endif
+
+        @if(session('error'))
+
+            <div class="mb-6 bg-red-100 text-red-700 border border-red-200 p-4 rounded-lg">
+                {{ session('error') }}
+            </div>
+
+        @endif
+
+        @if($errors->any())
+
+            <div class="mb-6 bg-red-100 text-red-700 p-4 rounded-lg">
+
+                <ul class="list-disc pl-5">
+
+                    @foreach($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+
+                </ul>
+
+            </div>
+
+        @endif
+
+        {{-- Tuition Details --}}
+        <div class="bg-white rounded-xl shadow-sm p-6">
+
+            <div class="flex justify-between gap-4">
+
+                <div>
+
+                    <h1 class="text-2xl font-bold">
+                        {{ $tuition->title }}
+                    </h1>
+
+                    <p class="text-sm text-gray-500 mt-1">
+                        Tuition ID: {{ $tuition->tuition_code }}
+                    </p>
+
+                </div>
+
+                <span class="bg-green-100 text-green-700 px-3 py-1 rounded-lg h-fit">
+                    Published
+                </span>
+
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-5 mt-8">
+
+                <div>
+                    <p class="text-gray-500 text-sm">
+                        Class
+                    </p>
+
+                    <p class="font-semibold">
+                        {{ $tuition->class_level }}
+                    </p>
+                </div>
+
+                <div>
+                    <p class="text-gray-500 text-sm">
+                        Location
+                    </p>
+
+                    <p class="font-semibold">
+                        {{ $tuition->location?->area ?? 'Not specified' }}
+                    </p>
+                </div>
+
+                <div>
+                    <p class="text-gray-500 text-sm">
+                        Salary
+                    </p>
+
+                    <p class="font-semibold">
+                        ৳{{ number_format((float) $tuition->salary) }}/month
+                    </p>
+                </div>
+
+                <div>
+                    <p class="text-gray-500 text-sm">
+                        Days Per Week
+                    </p>
+
+                    <p class="font-semibold">
+                        {{ $tuition->days_per_week }}
+                    </p>
+                </div>
+
+                <div>
+                    <p class="text-gray-500 text-sm">
+                        Tuition Mode
+                    </p>
+
+                    <p class="font-semibold">
+                        {{ ucfirst($tuition->teaching_mode) }}
+                    </p>
+                </div>
+
+                <div>
+                    <p class="text-gray-500 text-sm">
+                        Preferred Teacher
+                    </p>
+
+                    <p class="font-semibold">
+                        {{ ucfirst($tuition->preferred_teacher_gender) }}
+                    </p>
+                </div>
+
+            </div>
+
+            <div class="mt-8">
+
+                <h2 class="font-semibold">
+                    Subjects
+                </h2>
+
+                <div class="flex flex-wrap gap-2 mt-3">
+
+                    @foreach($tuition->subjects as $subject)
+
+                        <span class="bg-indigo-100 text-indigo-700 rounded-lg px-3 py-1 text-sm">
+                            {{ $subject->name }}
+                        </span>
+
+                    @endforeach
+
+                </div>
+
+            </div>
+
+            @if($tuition->requirements)
+
+                <div class="mt-8">
+
+                    <h2 class="font-semibold">
+                        Additional Requirements
+                    </h2>
+
+                    <p class="text-gray-600 mt-2 whitespace-pre-line">
+                        {{ $tuition->requirements }}
+                    </p>
+
+                </div>
+
+            @endif
+
+        </div>
+
+        {{-- Application --}}
+        <div class="bg-white rounded-xl shadow-sm p-6 mt-6">
+
+            <h2 class="text-xl font-bold">
+                Apply for this Tuition
+            </h2>
+
+            @if($alreadyApplied)
+
+                <div class="mt-4 bg-blue-100 text-blue-700 border border-blue-200 rounded-lg p-4">
+                    You have already applied for this tuition.
+                </div>
+
+            @elseif(! $activeSubscription)
+
+                <div class="mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-5">
+
+                    <h3 class="font-semibold text-yellow-800">
+                        Subscription Required
+                    </h3>
+
+                    <p class="text-sm text-yellow-700 mt-1">
+                        Activate a subscription plan before applying for tuition.
+                    </p>
+
+                    <a
+                        href="{{ route('teacher.subscription.index') }}"
+                        class="inline-block mt-4 bg-indigo-600 text-white px-5 py-2 rounded-lg"
+                    >
+                        View Subscription Plans
+                    </a>
+
+                </div>
+
+            @elseif(! $activeSubscription->canApply())
+
+                <div class="mt-4 bg-red-50 border border-red-200 rounded-lg p-5">
+
+                    <h3 class="font-semibold text-red-800">
+                        Application Limit Reached
+                    </h3>
+
+                    <p class="text-sm text-red-700 mt-1">
+                        You have used all applications included in your current plan.
+                    </p>
+
+                    <a
+                        href="{{ route('teacher.subscription.index') }}"
+                        class="inline-block mt-4 bg-indigo-600 text-white px-5 py-2 rounded-lg"
+                    >
+                        View Subscription
+                    </a>
+
+                </div>
+
+            @else
+
+                <div class="mt-4 bg-indigo-50 border border-indigo-100 rounded-lg p-4">
+
+                    <div class="flex flex-wrap justify-between gap-3">
+
+                        <span class="text-sm text-indigo-700">
+                            Current Plan:
+                            <strong>
+                                {{ $activeSubscription->plan?->name }}
+                            </strong>
+                        </span>
+
+                        <span class="text-sm text-indigo-700">
+
+                            @if($activeSubscription->plan?->application_limit === null)
+
+                                Unlimited applications available
+
+                            @else
+
+                                {{ $activeSubscription->applications_used }}
+                                /
+                                {{ $activeSubscription->plan->application_limit }}
+                                applications used
+
+                            @endif
+
+                        </span>
+
+                    </div>
+
+                </div>
+
+                <form
+                    method="POST"
+                    action="{{ route(
+                        'teacher.tuitions.apply',
+                        $tuition
+                    ) }}"
+                    class="mt-5"
+                >
+
+                    @csrf
+
+                    <div>
+
+                        <label class="block text-sm font-medium mb-2">
+                            Expected Salary
+                        </label>
+
+                        <input
+                            type="number"
+                            min="0"
+                            name="expected_salary"
+                            value="{{ old(
+                                'expected_salary',
+                                $tuition->salary
+                            ) }}"
+                            class="w-full border rounded-lg px-3 py-2"
+                        >
+
+                    </div>
+
+                    <div class="mt-4">
+
+                        <label class="block text-sm font-medium mb-2">
+                            Message
+                        </label>
+
+                        <textarea
+                            name="message"
+                            rows="5"
+                            class="w-full border rounded-lg px-3 py-2"
+                            placeholder="Write a short message about why you are suitable for this tuition..."
+                        >{{ old('message') }}</textarea>
+
+                    </div>
+
+                    <button
+                        type="submit"
+                        class="mt-5 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg"
+                    >
+                        Submit Application
+                    </button>
+
+                </form>
+
+            @endif
+
+        </div>
+
+    </main>
+
+</div>
+
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>My Applications - Tuition Hub</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100">
+
+<div class="min-h-screen">
+
+    <nav class="bg-white border-b shadow-sm">
+
+        <div class="max-w-6xl mx-auto px-6 py-4 flex justify-between">
+
+            <a
+                href="{{ route('teacher.dashboard') }}"
+                class="text-xl font-bold text-indigo-600"
+            >
+                Tuition Hub
+            </a>
+
+            <a
+                href="{{ route('teacher.tuitions.index') }}"
+                class="text-indigo-600"
+            >
+                Find Tuition
+            </a>
+
+        </div>
+
+    </nav>
+
+    <main class="max-w-6xl mx-auto px-6 py-8">
+
+        <h1 class="text-2xl font-bold">
+            My Applications
+        </h1>
+
+        <p class="text-gray-500 mt-1 mb-6">
+            Track your tuition applications.
+        </p>
+
+        <div class="space-y-4">
+
+            @forelse($applications as $application)
+
+                <div class="bg-white rounded-xl shadow-sm p-6">
+
+                    <div class="flex flex-col md:flex-row justify-between gap-5">
+
+                        <div>
+
+                            <h2 class="text-lg font-bold">
+                                {{ $application->tuitionPost->title }}
+                            </h2>
+
+                            <p class="text-sm text-gray-500 mt-1">
+                                {{ $application->tuitionPost->tuition_code }}
+                            </p>
+
+                            <div class="text-sm text-gray-700 mt-4 space-y-1">
+
+                                <p>
+                                    <strong>Class:</strong>
+                                    {{ $application->tuitionPost->class_level }}
+                                </p>
+
+                                <p>
+                                    <strong>Location:</strong>
+                                    {{ $application->tuitionPost->location?->area ?? 'Not specified' }}
+                                </p>
+
+                                <p>
+                                    <strong>Tuition Salary:</strong>
+                                    ৳{{ number_format((float) $application->tuitionPost->salary) }}
+                                </p>
+
+                                <p>
+                                    <strong>Your Expected Salary:</strong>
+                                    {{ $application->expected_salary
+                                        ? '৳'.number_format((float) $application->expected_salary)
+                                        : 'Not specified'
+                                    }}
+                                </p>
+
+                            </div>
+
+                        </div>
+
+                        <div>
+
+                            <span class="
+                                px-3 py-2 rounded-lg text-sm font-medium
+
+                                @if($application->status === 'accepted')
+                                    bg-green-100 text-green-700
+                                @elseif($application->status === 'rejected')
+                                    bg-red-100 text-red-700
+                                @elseif($application->status === 'shortlisted')
+                                    bg-blue-100 text-blue-700
+                                @else
+                                    bg-yellow-100 text-yellow-700
+                                @endif
+                            ">
+                                {{ ucfirst($application->status) }}
+                            </span>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            @empty
+
+                <div class="bg-white rounded-xl p-10 text-center">
+
+                    <h2 class="text-xl font-semibold">
+                        No applications yet
+                    </h2>
+
+                    <a
+                        href="{{ route('teacher.tuitions.index') }}"
+                        class="inline-block mt-5 bg-indigo-600 text-white px-5 py-3 rounded-lg"
+                    >
+                        Find Tuition
+                    </a>
+
+                </div>
+
+            @endforelse
+
+        </div>
+
+        @if(method_exists($applications, 'links'))
+            <div class="mt-6">
+                {{ $applications->links() }}
+            </div>
+        @endif
+
+    </main>
+
+</div>
+
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Teacher Requests - Tuition Hub</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100">
+
+<div class="min-h-screen">
+
+    <nav class="bg-white border-b shadow-sm">
+
+        <div class="max-w-7xl mx-auto px-6 py-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+
+            <a
+                href="{{ route('teacher.dashboard') }}"
+                class="text-xl font-bold text-indigo-600"
+            >
+                Tuition Hub
+            </a>
+
+            <div class="flex flex-wrap items-center gap-4">
+
+                <a
+                    href="{{ route('teacher.tuitions.index') }}"
+                    class="text-gray-700 hover:text-indigo-600"
+                >
+                    Find Tuition
+                </a>
+
+                <a
+                    href="{{ route('teacher.tuitions.applications') }}"
+                    class="text-gray-700 hover:text-indigo-600"
+                >
+                    My Applications
+                </a>
+
+                <a
+                    href="{{ route('teacher.requests.index') }}"
+                    class="text-indigo-600 font-medium"
+                >
+                    Incoming Requests
+                </a>
+
+                <a
+                    href="{{ route('teacher.profile.edit') }}"
+                    class="text-gray-700 hover:text-indigo-600"
+                >
+                    Profile
+                </a>
+
+                <a
+                    href="{{ route('teacher.subscription.index') }}"
+                    class="text-gray-700 hover:text-indigo-600"
+                >
+                    Subscription
+                </a>
+
+            </div>
+
+        </div>
+
+    </nav>
+
+    <main class="max-w-6xl mx-auto px-6 py-8">
+
+        <div class="mb-6">
+
+            <h1 class="text-3xl font-bold">
+                Incoming Teacher Requests
+            </h1>
+
+            <p class="text-gray-500 mt-2">
+                Review direct requests sent by students or guardians.
+            </p>
+
+        </div>
+
+        @if(session('success'))
+
+            <div class="mb-6 bg-green-100 border border-green-200 text-green-700 p-4 rounded-lg">
+                {{ session('success') }}
+            </div>
+
+        @endif
+
+        @if(session('error'))
+
+            <div class="mb-6 bg-red-100 border border-red-200 text-red-700 p-4 rounded-lg">
+                {{ session('error') }}
+            </div>
+
+        @endif
+
+        <div class="space-y-5">
+
+            @forelse($requests as $teacherRequest)
+
+                <div class="bg-white border rounded-xl shadow-sm p-6">
+
+                    <div class="flex flex-col lg:flex-row lg:justify-between gap-6">
+
+                        <div class="flex-1">
+
+                            <div class="flex flex-wrap items-center gap-3">
+
+                                <h2 class="text-xl font-bold">
+                                    {{ $teacherRequest->student?->name ?? 'Student / Guardian' }}
+                                </h2>
+
+                                <span class="
+                                    text-xs px-3 py-1 rounded-full font-medium
+
+                                    @if($teacherRequest->status === 'accepted')
+                                        bg-green-100 text-green-700
+                                    @elseif($teacherRequest->status === 'rejected')
+                                        bg-red-100 text-red-700
+                                    @elseif($teacherRequest->status === 'cancelled')
+                                        bg-gray-200 text-gray-700
+                                    @else
+                                        bg-yellow-100 text-yellow-700
+                                    @endif
+                                ">
+                                    {{ strtoupper($teacherRequest->status) }}
+                                </span>
+
+                            </div>
+
+                            <div class="grid md:grid-cols-2 gap-4 mt-5 text-sm">
+
+                                <div>
+
+                                    <p class="text-gray-500">
+                                        Email
+                                    </p>
+
+                                    <p class="font-medium">
+                                        {{ $teacherRequest->student?->email ?? 'N/A' }}
+                                    </p>
+
+                                </div>
+
+                                <div>
+
+                                    <p class="text-gray-500">
+                                        Phone
+                                    </p>
+
+                                    <p class="font-medium">
+                                        {{ $teacherRequest->student?->phone ?? 'N/A' }}
+                                    </p>
+
+                                </div>
+
+                            </div>
+
+                            @if($teacherRequest->tuitionPost)
+
+                                <div class="mt-5 bg-indigo-50 border border-indigo-100 rounded-lg p-4">
+
+                                    <h3 class="font-semibold text-indigo-900">
+                                        Linked Tuition
+                                    </h3>
+
+                                    <div class="grid sm:grid-cols-2 gap-3 mt-3 text-sm">
+
+                                        <div>
+
+                                            <p class="text-indigo-600">
+                                                Tuition
+                                            </p>
+
+                                            <p class="font-medium">
+                                                {{ $teacherRequest->tuitionPost->title }}
+                                            </p>
+
+                                        </div>
+
+                                        <div>
+
+                                            <p class="text-indigo-600">
+                                                Tuition ID
+                                            </p>
+
+                                            <p class="font-medium">
+                                                {{ $teacherRequest->tuitionPost->tuition_code }}
+                                            </p>
+
+                                        </div>
+
+                                        <div>
+
+                                            <p class="text-indigo-600">
+                                                Class
+                                            </p>
+
+                                            <p class="font-medium">
+                                                {{ $teacherRequest->tuitionPost->class_level }}
+                                            </p>
+
+                                        </div>
+
+                                        <div>
+
+                                            <p class="text-indigo-600">
+                                                Location
+                                            </p>
+
+                                            <p class="font-medium">
+                                                {{ $teacherRequest->tuitionPost->location?->area ?? 'Not specified' }}
+                                            </p>
+
+                                        </div>
+
+                                        <div>
+
+                                            <p class="text-indigo-600">
+                                                Salary
+                                            </p>
+
+                                            <p class="font-medium">
+                                                ৳{{ number_format((float) $teacherRequest->tuitionPost->salary) }}
+                                            </p>
+
+                                        </div>
+
+                                        <div>
+
+                                            <p class="text-indigo-600">
+                                                Teaching Mode
+                                            </p>
+
+                                            <p class="font-medium">
+                                                {{ ucfirst($teacherRequest->tuitionPost->teaching_mode) }}
+                                            </p>
+
+                                        </div>
+
+                                    </div>
+
+                                    <div class="mt-4">
+
+                                        <p class="text-indigo-600 text-sm">
+                                            Subjects
+                                        </p>
+
+                                        <div class="flex flex-wrap gap-2 mt-2">
+
+                                            @foreach($teacherRequest->tuitionPost->subjects as $subject)
+
+                                                <span class="bg-white text-indigo-700 px-3 py-1 rounded text-xs">
+                                                    {{ $subject->name }}
+                                                </span>
+
+                                            @endforeach
+
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+                            @else
+
+                                <div class="mt-5 bg-gray-50 rounded-lg p-4">
+
+                                    <p class="text-sm text-gray-600">
+                                        This is a general teacher request and is not linked to a specific tuition post.
+                                    </p>
+
+                                </div>
+
+                            @endif
+
+                            @if($teacherRequest->message)
+
+                                <div class="mt-5">
+
+                                    <p class="text-sm text-gray-500">
+                                        Message
+                                    </p>
+
+                                    <p class="text-gray-700 mt-2 whitespace-pre-line">
+                                        {{ $teacherRequest->message }}
+                                    </p>
+
+                                </div>
+
+                            @endif
+
+                            <p class="text-xs text-gray-400 mt-5">
+                                Sent:
+                                {{ $teacherRequest->created_at->format('d M Y, h:i A') }}
+                            </p>
+
+                        </div>
+
+                        <div class="lg:w-48">
+
+                            @if($teacherRequest->status === 'pending')
+
+                                <form
+                                    method="POST"
+                                    action="{{ route(
+                                        'teacher.requests.accept',
+                                        $teacherRequest
+                                    ) }}"
+                                >
+
+                                    @csrf
+                                    @method('PATCH')
+
+                                    <button
+                                        type="submit"
+                                        onclick="return confirm('Accept this teacher request?')"
+                                        class="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-lg"
+                                    >
+                                        Accept
+                                    </button>
+
+                                </form>
+
+                                <form
+                                    method="POST"
+                                    action="{{ route(
+                                        'teacher.requests.reject',
+                                        $teacherRequest
+                                    ) }}"
+                                    class="mt-3"
+                                >
+
+                                    @csrf
+                                    @method('PATCH')
+
+                                    <button
+                                        type="submit"
+                                        onclick="return confirm('Reject this teacher request?')"
+                                        class="w-full border border-red-500 text-red-600 px-4 py-3 rounded-lg"
+                                    >
+                                        Reject
+                                    </button>
+
+                                </form>
+
+                            @elseif($teacherRequest->status === 'accepted')
+
+                                <div class="bg-green-100 text-green-700 text-center p-4 rounded-lg">
+                                    Request Accepted
+                                </div>
+
+                            @elseif($teacherRequest->status === 'rejected')
+
+                                <div class="bg-red-100 text-red-700 text-center p-4 rounded-lg">
+                                    Request Rejected
+                                </div>
+
+                            @else
+
+                                <div class="bg-gray-200 text-gray-700 text-center p-4 rounded-lg">
+                                    Request Cancelled
+                                </div>
+
+                            @endif
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            @empty
+
+                <div class="bg-white border rounded-xl p-10 text-center">
+
+                    <h2 class="font-semibold text-lg">
+                        No teacher requests yet.
+                    </h2>
+
+                    <p class="text-gray-500 mt-2">
+                        Requests sent by students or guardians will appear here.
+                    </p>
+
+                </div>
+
+            @endforelse
+
+        </div>
+
+        @if(method_exists($requests, 'hasPages') && $requests->hasPages())
+
+            <div class="mt-8">
+                {{ $requests->links() }}
+            </div>
+
+        @endif
+
+    </main>
+
+</div>
+
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>My Assignments - Tuition Hub</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100">
+
+<div class="min-h-screen">
+
+    <nav class="bg-white border-b">
+
+        <div class="max-w-7xl mx-auto px-6 py-4 flex flex-wrap items-center justify-between gap-4">
+
+            <a
+                href="{{ route('teacher.dashboard') }}"
+                class="font-bold text-xl text-indigo-600"
+            >
+                Tuition Hub
+            </a>
+
+            <div class="flex flex-wrap gap-5 text-sm">
+
+                <a
+                    href="{{ route('teacher.dashboard') }}"
+                    class="text-gray-600"
+                >
+                    Dashboard
+                </a>
+
+                <a
+                    href="{{ route('teacher.tuitions.index') }}"
+                    class="text-gray-600"
+                >
+                    Find Tuition
+                </a>
+
+                <a
+                    href="{{ route('teacher.tuitions.applications') }}"
+                    class="text-gray-600"
+                >
+                    Applications
+                </a>
+
+                <a
+                    href="{{ route('teacher.assignments.index') }}"
+                    class="text-indigo-600 font-semibold"
+                >
+                    My Assignments
+                </a>
+
+                <a
+                    href="{{ route('teacher.complaints.index') }}"
+                    class="text-gray-600"
+                >
+                    Complaints
+                </a>
+
+            </div>
+
+        </div>
+
+    </nav>
+
+    <main class="max-w-6xl mx-auto px-6 py-8">
+
+        <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+
+            <div>
+
+                <h1 class="text-3xl font-bold">
+                    My Tuition Assignments
+                </h1>
+
+                <p class="text-gray-500 mt-2">
+                    Final tuition jobs assigned to you.
+                </p>
+
+            </div>
+
+            <a
+                href="{{ route('teacher.complaints.index') }}"
+                class="inline-flex w-fit bg-white border px-4 py-2.5 rounded-lg text-sm font-medium"
+            >
+                View My Complaints
+            </a>
+
+        </div>
+
+        @if(session('success'))
+
+            <div class="mt-6 bg-green-100 border border-green-200 text-green-700 p-4 rounded-lg">
+                {{ session('success') }}
+            </div>
+
+        @endif
+
+        @if(session('error'))
+
+            <div class="mt-6 bg-red-100 border border-red-200 text-red-700 p-4 rounded-lg">
+                {{ session('error') }}
+            </div>
+
+        @endif
+
+        <div class="space-y-6 mt-8">
+
+            @forelse($assignments as $assignment)
+
+                <div class="bg-white border rounded-xl p-6">
+
+                    <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
+
+                        <div class="flex-1">
+
+                            <div class="flex flex-wrap items-center gap-3">
+
+                                <h2 class="text-xl font-bold">
+                                    {{ $assignment->tuitionPost?->title ?? 'Unknown Tuition' }}
+                                </h2>
+
+                                <span class="
+                                    text-xs px-3 py-1 rounded-full font-medium
+
+                                    @if($assignment->status === 'active')
+                                        bg-green-100 text-green-700
+                                    @elseif($assignment->status === 'completed')
+                                        bg-blue-100 text-blue-700
+                                    @else
+                                        bg-red-100 text-red-700
+                                    @endif
+                                ">
+                                    {{ strtoupper(
+                                        $assignment->status
+                                    ) }}
+                                </span>
+
+                            </div>
+
+                            <p class="text-sm text-gray-500 mt-2">
+                                Tuition Code:
+                                {{ $assignment->tuitionPost?->tuition_code ?? 'N/A' }}
+                            </p>
+
+                            <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-5">
+
+                                <div class="bg-gray-50 rounded-lg p-4">
+
+                                    <p class="text-xs text-gray-500">
+                                        Class
+                                    </p>
+
+                                    <p class="font-medium mt-1">
+                                        {{ $assignment->tuitionPost?->class_level ?? 'N/A' }}
+                                    </p>
+
+                                </div>
+
+                                <div class="bg-gray-50 rounded-lg p-4">
+
+                                    <p class="text-xs text-gray-500">
+                                        Salary
+                                    </p>
+
+                                    <p class="font-medium mt-1">
+
+                                        @if($assignment->tuitionPost?->salary !== null)
+
+                                            ৳{{ number_format(
+                                                (float) $assignment->tuitionPost->salary
+                                            ) }}
+
+                                        @else
+
+                                            N/A
+
+                                        @endif
+
+                                    </p>
+
+                                </div>
+
+                                <div class="bg-gray-50 rounded-lg p-4">
+
+                                    <p class="text-xs text-gray-500">
+                                        Teaching Mode
+                                    </p>
+
+                                    <p class="font-medium mt-1">
+                                        {{ ucfirst(
+                                            $assignment->tuitionPost?->teaching_mode ?? 'N/A'
+                                        ) }}
+                                    </p>
+
+                                </div>
+
+                                <div class="bg-gray-50 rounded-lg p-4">
+
+                                    <p class="text-xs text-gray-500">
+                                        Assigned
+                                    </p>
+
+                                    <p class="font-medium mt-1">
+                                        {{ $assignment
+                                            ->assigned_at
+                                            ?->format('d M Y')
+                                            ?? 'N/A'
+                                        }}
+                                    </p>
+
+                                </div>
+
+                            </div>
+
+                            <div class="mt-6 border-t pt-5">
+
+                                <p class="text-sm text-gray-500">
+                                    Student / Guardian
+                                </p>
+
+                                <h3 class="text-lg font-bold mt-1">
+                                    {{ $assignment
+                                        ->student
+                                        ?->name ?? 'N/A'
+                                    }}
+                                </h3>
+
+                            </div>
+
+                            {{-- Contact Unlock --}}
+                            @if($assignment->status === 'active')
+
+                                <div class="mt-5 bg-indigo-50 border border-indigo-100 rounded-xl p-5">
+
+                                    <h3 class="font-bold text-indigo-900">
+                                        Student / Guardian Contact Unlocked
+                                    </h3>
+
+                                    <div class="mt-3 grid sm:grid-cols-2 gap-3 text-sm">
+
+                                        <p>
+                                            <strong>Name:</strong>
+
+                                            {{ $assignment
+                                                ->student
+                                                ?->name ?? 'N/A'
+                                            }}
+                                        </p>
+
+                                        <p>
+                                            <strong>Phone:</strong>
+
+                                            {{ $assignment
+                                                ->student
+                                                ?->phone ?? 'N/A'
+                                            }}
+                                        </p>
+
+                                        <p>
+                                            <strong>Email:</strong>
+
+                                            {{ $assignment
+                                                ->student
+                                                ?->email ?? 'N/A'
+                                            }}
+                                        </p>
+
+                                        @if(
+                                            $assignment
+                                                ->student
+                                                ?->studentProfile
+                                                ?->guardian_name
+                                        )
+
+                                            <p>
+                                                <strong>Guardian:</strong>
+
+                                                {{ $assignment
+                                                    ->student
+                                                    ->studentProfile
+                                                    ->guardian_name
+                                                }}
+                                            </p>
+
+                                        @endif
+
+                                        @if(
+                                            $assignment
+                                                ->student
+                                                ?->studentProfile
+                                                ?->guardian_phone
+                                        )
+
+                                            <p>
+                                                <strong>Guardian Phone:</strong>
+
+                                                {{ $assignment
+                                                    ->student
+                                                    ->studentProfile
+                                                    ->guardian_phone
+                                                }}
+                                            </p>
+
+                                        @endif
+
+                                        @if(
+                                            $assignment
+                                                ->student
+                                                ?->studentProfile
+                                                ?->address
+                                        )
+
+                                            <p class="sm:col-span-2">
+                                                <strong>Address:</strong>
+
+                                                {{ $assignment
+                                                    ->student
+                                                    ->studentProfile
+                                                    ->address
+                                                }}
+                                            </p>
+
+                                        @endif
+
+                                    </div>
+
+                                </div>
+
+                            @else
+
+                                <div class="mt-5 bg-gray-50 rounded-lg p-4 text-sm text-gray-500">
+                                    Contact information is available only while the assignment is active.
+                                </div>
+
+                            @endif
+
+                        </div>
+
+                        {{-- Actions --}}
+                        <div class="lg:w-60 space-y-3">
+
+                            <a
+                                href="{{ route(
+                                    'teacher.complaints.create',
+                                    $assignment
+                                ) }}"
+                                class="block w-full text-center border border-red-200 bg-white hover:bg-red-50 text-red-600 px-5 py-3 rounded-lg font-medium"
+                            >
+                                Report / Complaint
+                            </a>
+
+                            <a
+                                href="{{ route('teacher.complaints.index') }}"
+                                class="block w-full text-center border bg-gray-50 hover:bg-gray-100 text-gray-700 px-5 py-3 rounded-lg"
+                            >
+                                My Complaints
+                            </a>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            @empty
+
+                <div class="bg-white border rounded-xl p-12 text-center">
+
+                    <h2 class="text-xl font-bold">
+                        No final assignments yet
+                    </h2>
+
+                    <p class="text-gray-500 mt-2">
+                        Jobs will appear here after a student finally selects you.
+                    </p>
+
+                </div>
+
+            @endforelse
+
+        </div>
+
+        <div class="mt-7">
+            {{ $assignments->links() }}
+        </div>
+
+    </main>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,1341 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>My Assignments - Tuition Hub</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100">
+
+<div class="min-h-screen">
+
+    <nav class="bg-white border-b">
+
+        <div class="max-w-7xl mx-auto px-6 py-4 flex flex-wrap items-center justify-between gap-4">
+
+            <a
+                href="{{ route('student.dashboard') }}"
+                class="font-bold text-xl text-indigo-600"
+            >
+                Tuition Hub
+            </a>
+
+            <div class="flex flex-wrap gap-5 text-sm">
+
+                <a
+                    href="{{ route('student.dashboard') }}"
+                    class="text-gray-600"
+                >
+                    Dashboard
+                </a>
+
+                <a
+                    href="{{ route('student.teachers.index') }}"
+                    class="text-gray-600"
+                >
+                    Find Teachers
+                </a>
+
+                <a
+                    href="{{ route('student.tuitions.index') }}"
+                    class="text-gray-600"
+                >
+                    My Tuitions
+                </a>
+
+                <a
+                    href="{{ route('student.assignments.index') }}"
+                    class="text-indigo-600 font-semibold"
+                >
+                    My Assignments
+                </a>
+
+                <a
+                    href="{{ route('student.complaints.index') }}"
+                    class="text-gray-600"
+                >
+                    Complaints
+                </a>
+
+            </div>
+
+        </div>
+
+    </nav>
+
+    <main class="max-w-6xl mx-auto px-6 py-8">
+
+        <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+
+            <div>
+
+                <h1 class="text-3xl font-bold">
+                    My Tuition Assignments
+                </h1>
+
+                <p class="text-gray-500 mt-2">
+                    View assigned teachers, contact details, reviews and complaints.
+                </p>
+
+            </div>
+
+            <a
+                href="{{ route('student.complaints.index') }}"
+                class="inline-flex w-fit bg-white border px-4 py-2.5 rounded-lg text-sm font-medium"
+            >
+                View My Complaints
+            </a>
+
+        </div>
+
+        @if(session('success'))
+
+            <div class="mt-6 bg-green-100 border border-green-200 text-green-700 p-4 rounded-lg">
+                {{ session('success') }}
+            </div>
+
+        @endif
+
+        @if(session('error'))
+
+            <div class="mt-6 bg-red-100 border border-red-200 text-red-700 p-4 rounded-lg">
+                {{ session('error') }}
+            </div>
+
+        @endif
+
+        @if($errors->any())
+
+            <div class="mt-6 bg-red-100 border border-red-200 text-red-700 p-4 rounded-lg">
+
+                <ul class="list-disc pl-5">
+
+                    @foreach($errors->all() as $error)
+
+                        <li>
+                            {{ $error }}
+                        </li>
+
+                    @endforeach
+
+                </ul>
+
+            </div>
+
+        @endif
+
+        <div class="space-y-6 mt-8">
+
+            @forelse($assignments as $assignment)
+
+                <div class="bg-white border rounded-xl overflow-hidden">
+
+                    <div class="p-6">
+
+                        <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
+
+                            <div class="flex-1">
+
+                                <div class="flex flex-wrap items-center gap-3">
+
+                                    <h2 class="text-xl font-bold">
+                                        {{ $assignment->tuitionPost?->title ?? 'Unknown Tuition' }}
+                                    </h2>
+
+                                    <span class="
+                                        text-xs px-3 py-1 rounded-full font-medium
+
+                                        @if($assignment->status === 'active')
+                                            bg-green-100 text-green-700
+                                        @elseif($assignment->status === 'completed')
+                                            bg-blue-100 text-blue-700
+                                        @else
+                                            bg-red-100 text-red-700
+                                        @endif
+                                    ">
+                                        {{ strtoupper($assignment->status) }}
+                                    </span>
+
+                                </div>
+
+                                <p class="text-sm text-gray-500 mt-2">
+                                    Tuition Code:
+                                    <strong>
+                                        {{ $assignment->tuitionPost?->tuition_code ?? 'N/A' }}
+                                    </strong>
+                                </p>
+
+                                <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-5">
+
+                                    <div class="bg-gray-50 rounded-lg p-4">
+
+                                        <p class="text-xs text-gray-500">
+                                            Class
+                                        </p>
+
+                                        <p class="font-medium mt-1">
+                                            {{ $assignment->tuitionPost?->class_level ?? 'N/A' }}
+                                        </p>
+
+                                    </div>
+
+                                    <div class="bg-gray-50 rounded-lg p-4">
+
+                                        <p class="text-xs text-gray-500">
+                                            Salary
+                                        </p>
+
+                                        <p class="font-medium mt-1">
+
+                                            @if($assignment->tuitionPost?->salary !== null)
+
+                                                ৳{{ number_format(
+                                                    (float) $assignment->tuitionPost->salary
+                                                ) }}
+
+                                            @else
+
+                                                N/A
+
+                                            @endif
+
+                                        </p>
+
+                                    </div>
+
+                                    <div class="bg-gray-50 rounded-lg p-4">
+
+                                        <p class="text-xs text-gray-500">
+                                            Mode
+                                        </p>
+
+                                        <p class="font-medium mt-1">
+                                            {{ ucfirst(
+                                                $assignment->tuitionPost?->teaching_mode ?? 'N/A'
+                                            ) }}
+                                        </p>
+
+                                    </div>
+
+                                    <div class="bg-gray-50 rounded-lg p-4">
+
+                                        <p class="text-xs text-gray-500">
+                                            Assigned Via
+                                        </p>
+
+                                        <p class="font-medium mt-1">
+                                            {{ $assignment->source === 'application'
+                                                ? 'Application'
+                                                : 'Direct Request'
+                                            }}
+                                        </p>
+
+                                    </div>
+
+                                </div>
+
+                                <div class="mt-6 border-t pt-5">
+
+                                    <p class="text-sm text-gray-500">
+                                        Assigned Teacher
+                                    </p>
+
+                                    <h3 class="text-lg font-bold mt-1">
+                                        {{ $assignment
+                                            ->teacherProfile
+                                            ?->user
+                                            ?->name ?? 'N/A'
+                                        }}
+                                    </h3>
+
+                                    <p class="text-sm text-gray-600 mt-1">
+                                        {{ $assignment
+                                            ->teacherProfile
+                                            ?->university ?? ''
+                                        }}
+                                    </p>
+
+                                    <p class="text-sm text-gray-600">
+                                        {{ $assignment
+                                            ->teacherProfile
+                                            ?->department ?? ''
+                                        }}
+                                    </p>
+
+                                </div>
+
+                                {{-- Active Contact --}}
+                                @if($assignment->status === 'active')
+
+                                    <div class="mt-5 bg-indigo-50 border border-indigo-100 rounded-xl p-5">
+
+                                        <h3 class="font-bold text-indigo-900">
+                                            Teacher Contact Unlocked
+                                        </h3>
+
+                                        <div class="mt-3 space-y-2 text-sm">
+
+                                            <p>
+                                                <strong>Email:</strong>
+
+                                                {{ $assignment
+                                                    ->teacherProfile
+                                                    ?->user
+                                                    ?->email ?? 'N/A'
+                                                }}
+                                            </p>
+
+                                            <p>
+                                                <strong>Phone:</strong>
+
+                                                {{ $assignment
+                                                    ->teacherProfile
+                                                    ?->user
+                                                    ?->phone ?? 'N/A'
+                                                }}
+                                            </p>
+
+                                        </div>
+
+                                    </div>
+
+                                @else
+
+                                    <div class="mt-5 bg-gray-50 rounded-lg p-4 text-sm text-gray-500">
+                                        Contact information is available only while the assignment is active.
+                                    </div>
+
+                                @endif
+
+                                {{-- Review --}}
+                                @if($assignment->status === 'completed')
+
+                                    @if($assignment->review)
+
+                                        <div class="mt-5 bg-yellow-50 border border-yellow-200 rounded-xl p-5">
+
+                                            <h3 class="font-bold">
+                                                Your Review
+                                            </h3>
+
+                                            <div class="mt-2 text-xl">
+
+                                                <span class="text-yellow-500">
+                                                    {{ str_repeat(
+                                                        '★',
+                                                        $assignment->review->rating
+                                                    ) }}
+                                                </span>
+
+                                                <span class="text-gray-300">
+                                                    {{ str_repeat(
+                                                        '★',
+                                                        5 - $assignment->review->rating
+                                                    ) }}
+                                                </span>
+
+                                            </div>
+
+                                            @if($assignment->review->review)
+
+                                                <p class="text-sm text-gray-700 mt-3">
+                                                    {{ $assignment->review->review }}
+                                                </p>
+
+                                            @endif
+
+                                        </div>
+
+                                    @else
+
+                                        <form
+                                            method="POST"
+                                            action="{{ route(
+                                                'student.assignments.review.store',
+                                                $assignment
+                                            ) }}"
+                                            class="mt-5 border rounded-xl p-5"
+                                        >
+
+                                            @csrf
+
+                                            <h3 class="font-bold text-lg">
+                                                Rate Your Teacher
+                                            </h3>
+
+                                            <p class="text-sm text-gray-500 mt-1">
+                                                Share your experience after completing this tuition.
+                                            </p>
+
+                                            <div class="mt-4">
+
+                                                <label class="block text-sm font-medium mb-2">
+                                                    Rating
+                                                </label>
+
+                                                <select
+                                                    name="rating"
+                                                    required
+                                                    class="w-full border rounded-lg px-4 py-3"
+                                                >
+
+                                                    <option value="">
+                                                        Select Rating
+                                                    </option>
+
+                                                    <option value="5">
+                                                        5 - Excellent
+                                                    </option>
+
+                                                    <option value="4">
+                                                        4 - Very Good
+                                                    </option>
+
+                                                    <option value="3">
+                                                        3 - Good
+                                                    </option>
+
+                                                    <option value="2">
+                                                        2 - Fair
+                                                    </option>
+
+                                                    <option value="1">
+                                                        1 - Poor
+                                                    </option>
+
+                                                </select>
+
+                                            </div>
+
+                                            <div class="mt-4">
+
+                                                <label class="block text-sm font-medium mb-2">
+                                                    Review
+                                                </label>
+
+                                                <textarea
+                                                    name="review"
+                                                    rows="4"
+                                                    maxlength="2000"
+                                                    placeholder="Share your experience..."
+                                                    class="w-full border rounded-lg px-4 py-3"
+                                                ></textarea>
+
+                                            </div>
+
+                                            <button
+                                                type="submit"
+                                                class="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-3 rounded-lg"
+                                            >
+                                                Submit Review
+                                            </button>
+
+                                        </form>
+
+                                    @endif
+
+                                @endif
+
+                            </div>
+
+                            {{-- Actions --}}
+                            <div class="lg:w-60 space-y-3">
+
+                                @if($assignment->status === 'active')
+
+                                    <form
+                                        method="POST"
+                                        action="{{ route(
+                                            'student.assignments.complete',
+                                            $assignment
+                                        ) }}"
+                                    >
+
+                                        @csrf
+                                        @method('PATCH')
+
+                                        <button
+                                            type="submit"
+                                            onclick="return confirm('Mark this tuition assignment as completed?')"
+                                            class="w-full bg-green-600 hover:bg-green-700 text-white px-5 py-3 rounded-lg"
+                                        >
+                                            Mark Completed
+                                        </button>
+
+                                    </form>
+
+                                    <form
+                                        method="POST"
+                                        action="{{ route(
+                                            'student.assignments.cancel',
+                                            $assignment
+                                        ) }}"
+                                    >
+
+                                        @csrf
+                                        @method('PATCH')
+
+                                        <button
+                                            type="submit"
+                                            onclick="return confirm('Cancel this final tuition assignment?')"
+                                            class="w-full bg-red-50 hover:bg-red-100 text-red-700 px-5 py-3 rounded-lg"
+                                        >
+                                            Cancel Assignment
+                                        </button>
+
+                                    </form>
+
+                                @endif
+
+                                <a
+                                    href="{{ route(
+                                        'student.complaints.create',
+                                        $assignment
+                                    ) }}"
+                                    class="block w-full text-center border border-red-200 bg-white hover:bg-red-50 text-red-600 px-5 py-3 rounded-lg font-medium"
+                                >
+                                    Report / Complaint
+                                </a>
+
+                                <a
+                                    href="{{ route('student.complaints.index') }}"
+                                    class="block w-full text-center border bg-gray-50 hover:bg-gray-100 text-gray-700 px-5 py-3 rounded-lg"
+                                >
+                                    My Complaints
+                                </a>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            @empty
+
+                <div class="bg-white border rounded-xl p-12 text-center">
+
+                    <h2 class="text-xl font-bold">
+                        No final assignments yet
+                    </h2>
+
+                    <p class="text-gray-500 mt-2">
+                        Assignments appear here after you finally select a teacher.
+                    </p>
+
+                </div>
+
+            @endforelse
+
+        </div>
+
+        <div class="mt-7">
+            {{ $assignments->links() }}
+        </div>
+
+    </main>
+
+</div>
+
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>My Complaints - Tuition Hub</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100">
+
+<main class="max-w-5xl mx-auto px-6 py-8">
+
+    <div class="flex justify-between gap-4">
+
+        <div>
+
+            <h1 class="text-3xl font-bold">
+                My Complaints
+            </h1>
+
+            <p class="text-gray-500 mt-2">
+                Track complaint status and admin responses.
+            </p>
+
+        </div>
+
+        <a
+            href="{{ route('student.assignments.index') }}"
+            class="text-indigo-600"
+        >
+            Assignments
+        </a>
+
+    </div>
+
+    @if(session('success'))
+
+        <div class="mt-6 bg-green-100 text-green-700 p-4 rounded-lg">
+            {{ session('success') }}
+        </div>
+
+    @endif
+
+    <div class="space-y-4 mt-7">
+
+        @forelse($complaints as $complaint)
+
+            <div class="bg-white border rounded-xl p-5">
+
+                <div class="flex justify-between gap-4">
+
+                    <div>
+
+                        <p class="text-xs text-gray-400">
+                            Complaint #{{ $complaint->id }}
+                        </p>
+
+                        <h2 class="font-bold text-lg mt-1">
+                            {{ $complaint->subject }}
+                        </h2>
+
+                        <p class="text-sm text-gray-500 mt-2">
+                            Category:
+                            {{ ucwords(
+                                str_replace(
+                                    '_',
+                                    ' ',
+                                    $complaint->category
+                                )
+                            ) }}
+                        </p>
+
+                    </div>
+
+                    <span class="text-xs font-medium px-3 py-1 rounded-full bg-gray-100 h-fit">
+                        {{ strtoupper(
+                            $complaint->status
+                        ) }}
+                    </span>
+
+                </div>
+
+                <p class="text-sm text-gray-700 mt-4 whitespace-pre-line">{{ $complaint->description }}</p>
+
+                @if($complaint->admin_note)
+
+                    <div class="mt-4 bg-indigo-50 border border-indigo-100 p-4 rounded-lg">
+
+                        <strong>
+                            Admin Note:
+                        </strong>
+
+                        <p class="text-sm mt-1">
+                            {{ $complaint->admin_note }}
+                        </p>
+
+                    </div>
+
+                @endif
+
+            </div>
+
+        @empty
+
+            <div class="bg-white border rounded-xl p-10 text-center text-gray-500">
+                No complaints submitted yet.
+            </div>
+
+        @endforelse
+
+    </div>
+
+    <div class="mt-6">
+        {{ $complaints->links() }}
+    </div>
+
+</main>
+
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Submit Complaint - Tuition Hub</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100">
+
+<main class="max-w-3xl mx-auto px-6 py-8">
+
+    <a
+        href="{{ route('student.assignments.index') }}"
+        class="text-indigo-600"
+    >
+        ← Back to Assignments
+    </a>
+
+    <div class="mt-5">
+
+        <h1 class="text-3xl font-bold">
+            Submit Complaint
+        </h1>
+
+        <p class="text-gray-500 mt-2">
+            Tuition:
+            {{ $assignment->tuitionPost?->title }}
+        </p>
+
+        <p class="text-gray-500">
+            Teacher:
+            {{ $assignment->teacherProfile?->user?->name }}
+        </p>
+
+    </div>
+
+    @if($errors->any())
+
+        <div class="mt-6 bg-red-100 text-red-700 p-4 rounded-lg">
+
+            <ul class="list-disc pl-5">
+
+                @foreach($errors->all() as $error)
+
+                    <li>
+                        {{ $error }}
+                    </li>
+
+                @endforeach
+
+            </ul>
+
+        </div>
+
+    @endif
+
+    <form
+        method="POST"
+        action="{{ route(
+            'student.complaints.store',
+            $assignment
+        ) }}"
+        class="bg-white border rounded-xl p-6 mt-7"
+    >
+
+        @csrf
+
+        <div>
+
+            <label class="block text-sm font-medium mb-2">
+                Category
+            </label>
+
+            <select
+                name="category"
+                required
+                class="w-full border rounded-lg px-4 py-3"
+            >
+
+                <option value="">
+                    Select category
+                </option>
+
+                <option value="behavior">
+                    Behavior
+                </option>
+
+                <option value="payment">
+                    Payment
+                </option>
+
+                <option value="attendance">
+                    Attendance
+                </option>
+
+                <option value="misinformation">
+                    Misinformation
+                </option>
+
+                <option value="harassment">
+                    Harassment
+                </option>
+
+                <option value="safety">
+                    Safety Concern
+                </option>
+
+                <option value="other">
+                    Other
+                </option>
+
+            </select>
+
+        </div>
+
+        <div class="mt-5">
+
+            <label class="block text-sm font-medium mb-2">
+                Subject
+            </label>
+
+            <input
+                type="text"
+                name="subject"
+                value="{{ old('subject') }}"
+                required
+                class="w-full border rounded-lg px-4 py-3"
+            >
+
+        </div>
+
+        <div class="mt-5">
+
+            <label class="block text-sm font-medium mb-2">
+                Description
+            </label>
+
+            <textarea
+                name="description"
+                rows="7"
+                required
+                class="w-full border rounded-lg px-4 py-3"
+            >{{ old('description') }}</textarea>
+
+        </div>
+
+        <button
+            type="submit"
+            class="mt-6 bg-red-600 text-white px-6 py-3 rounded-lg"
+        >
+            Submit Complaint
+        </button>
+
+    </form>
+
+</main>
+
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>My Profile - Tuition Hub</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100">
+
+<div class="min-h-screen">
+
+    <nav class="bg-white border-b">
+
+        <div class="max-w-6xl mx-auto px-6 py-4 flex flex-wrap items-center justify-between gap-4">
+
+            <a
+                href="{{ route('student.dashboard') }}"
+                class="text-xl font-bold text-indigo-600"
+            >
+                Tuition Hub
+            </a>
+
+            <div class="flex flex-wrap items-center gap-5 text-sm">
+
+                <a
+                    href="{{ route('student.dashboard') }}"
+                    class="text-gray-600"
+                >
+                    Dashboard
+                </a>
+
+                <a
+                    href="{{ route('student.teachers.index') }}"
+                    class="text-gray-600"
+                >
+                    Find Teachers
+                </a>
+
+                <a
+                    href="{{ route('student.tuitions.index') }}"
+                    class="text-gray-600"
+                >
+                    My Tuitions
+                </a>
+
+                <a
+                    href="{{ route('student.profile.edit') }}"
+                    class="text-indigo-600 font-semibold"
+                >
+                    Profile
+                </a>
+
+            </div>
+
+        </div>
+
+    </nav>
+
+    <main class="max-w-4xl mx-auto px-6 py-8">
+
+        <div>
+
+            <h1 class="text-3xl font-bold">
+                Student / Guardian Profile
+            </h1>
+
+            <p class="text-gray-500 mt-2">
+                Complete your profile information for a smoother tuition matching experience.
+            </p>
+
+        </div>
+
+        @if(session('success'))
+
+            <div class="mt-6 bg-green-100 border border-green-200 text-green-700 p-4 rounded-lg">
+                {{ session('success') }}
+            </div>
+
+        @endif
+
+        @if(session('error'))
+
+            <div class="mt-6 bg-red-100 border border-red-200 text-red-700 p-4 rounded-lg">
+                {{ session('error') }}
+            </div>
+
+        @endif
+
+        @if($errors->any())
+
+            <div class="mt-6 bg-red-100 border border-red-200 text-red-700 p-4 rounded-lg">
+
+                <ul class="list-disc pl-5">
+
+                    @foreach($errors->all() as $error)
+
+                        <li>
+                            {{ $error }}
+                        </li>
+
+                    @endforeach
+
+                </ul>
+
+            </div>
+
+        @endif
+
+        <form
+            method="POST"
+            action="{{ route('student.profile.update') }}"
+            enctype="multipart/form-data"
+            class="mt-7 space-y-6"
+        >
+
+            @csrf
+            @method('PUT')
+
+            {{-- Profile Photo --}}
+            <section class="bg-white border rounded-xl p-6">
+
+                <h2 class="text-xl font-bold">
+                    Profile Photo
+                </h2>
+
+                <div class="mt-5 flex flex-col sm:flex-row sm:items-center gap-6">
+
+                    @if($profile->profile_photo)
+
+                        <img
+                            src="{{ asset(
+                                'storage/'.$profile->profile_photo
+                            ) }}"
+                            alt="{{ $user->name }}"
+                            class="w-32 h-32 rounded-full object-cover border"
+                        >
+
+                    @else
+
+                        <div class="w-32 h-32 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-4xl font-bold">
+                            {{ strtoupper(
+                                substr($user->name, 0, 1)
+                            ) }}
+                        </div>
+
+                    @endif
+
+                    <div class="flex-1">
+
+                        <label class="block text-sm font-medium mb-2">
+                            Upload Photo
+                        </label>
+
+                        <input
+                            type="file"
+                            name="profile_photo"
+                            accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                            class="w-full border rounded-lg p-3"
+                        >
+
+                        <p class="text-xs text-gray-500 mt-2">
+                            JPG, PNG or WEBP. Maximum size 2 MB.
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+            {{-- Account --}}
+            <section class="bg-white border rounded-xl p-6">
+
+                <h2 class="text-xl font-bold">
+                    Account Information
+                </h2>
+
+                <div class="grid md:grid-cols-2 gap-5 mt-5">
+
+                    <div>
+
+                        <label class="block text-sm font-medium mb-2">
+                            Name
+                        </label>
+
+                        <input
+                            type="text"
+                            value="{{ $user->name }}"
+                            disabled
+                            class="w-full border rounded-lg px-4 py-3 bg-gray-100"
+                        >
+
+                    </div>
+
+                    <div>
+
+                        <label class="block text-sm font-medium mb-2">
+                            Email
+                        </label>
+
+                        <input
+                            type="email"
+                            value="{{ $user->email }}"
+                            disabled
+                            class="w-full border rounded-lg px-4 py-3 bg-gray-100"
+                        >
+
+                    </div>
+
+                    <div>
+
+                        <label class="block text-sm font-medium mb-2">
+                            Phone
+                        </label>
+
+                        <input
+                            type="text"
+                            value="{{ $user->phone }}"
+                            disabled
+                            class="w-full border rounded-lg px-4 py-3 bg-gray-100"
+                        >
+
+                    </div>
+
+                    <div>
+
+                        <label class="block text-sm font-medium mb-2">
+                            Gender
+                        </label>
+
+                        <select
+                            name="gender"
+                            class="w-full border rounded-lg px-4 py-3"
+                        >
+
+                            <option value="">
+                                Select Gender
+                            </option>
+
+                            <option
+                                value="male"
+                                @selected(
+                                    old(
+                                        'gender',
+                                        $profile->gender
+                                    ) === 'male'
+                                )
+                            >
+                                Male
+                            </option>
+
+                            <option
+                                value="female"
+                                @selected(
+                                    old(
+                                        'gender',
+                                        $profile->gender
+                                    ) === 'female'
+                                )
+                            >
+                                Female
+                            </option>
+
+                            <option
+                                value="other"
+                                @selected(
+                                    old(
+                                        'gender',
+                                        $profile->gender
+                                    ) === 'other'
+                                )
+                            >
+                                Other
+                            </option>
+
+                        </select>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+            {{-- Student Information --}}
+            <section class="bg-white border rounded-xl p-6">
+
+                <h2 class="text-xl font-bold">
+                    Student Information
+                </h2>
+
+                <div class="grid md:grid-cols-2 gap-5 mt-5">
+
+                    <div>
+
+                        <label class="block text-sm font-medium mb-2">
+                            Class / Level
+                        </label>
+
+                        <input
+                            type="text"
+                            name="class_level"
+                            value="{{ old(
+                                'class_level',
+                                $profile->class_level
+                            ) }}"
+                            placeholder="Example: Class 8"
+                            class="w-full border rounded-lg px-4 py-3"
+                        >
+
+                    </div>
+
+                    <div>
+
+                        <label class="block text-sm font-medium mb-2">
+                            Medium
+                        </label>
+
+                        <select
+                            name="medium"
+                            class="w-full border rounded-lg px-4 py-3"
+                        >
+
+                            <option value="">
+                                Select Medium
+                            </option>
+
+                            <option
+                                value="bangla"
+                                @selected(
+                                    old(
+                                        'medium',
+                                        $profile->medium
+                                    ) === 'bangla'
+                                )
+                            >
+                                Bangla Medium
+                            </option>
+
+                            <option
+                                value="english"
+                                @selected(
+                                    old(
+                                        'medium',
+                                        $profile->medium
+                                    ) === 'english'
+                                )
+                            >
+                                English Medium
+                            </option>
+
+                            <option
+                                value="english_version"
+                                @selected(
+                                    old(
+                                        'medium',
+                                        $profile->medium
+                                    ) === 'english_version'
+                                )
+                            >
+                                English Version
+                            </option>
+
+                            <option
+                                value="madrasa"
+                                @selected(
+                                    old(
+                                        'medium',
+                                        $profile->medium
+                                    ) === 'madrasa'
+                                )
+                            >
+                                Madrasa
+                            </option>
+
+                            <option
+                                value="other"
+                                @selected(
+                                    old(
+                                        'medium',
+                                        $profile->medium
+                                    ) === 'other'
+                                )
+                            >
+                                Other
+                            </option>
+
+                        </select>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+            {{-- Guardian --}}
+            <section class="bg-white border rounded-xl p-6">
+
+                <h2 class="text-xl font-bold">
+                    Guardian Information
+                </h2>
+
+                <p class="text-sm text-gray-500 mt-1">
+                    Fill these fields if the account is managed by a guardian.
+                </p>
+
+                <div class="grid md:grid-cols-2 gap-5 mt-5">
+
+                    <div>
+
+                        <label class="block text-sm font-medium mb-2">
+                            Guardian Name
+                        </label>
+
+                        <input
+                            type="text"
+                            name="guardian_name"
+                            value="{{ old(
+                                'guardian_name',
+                                $profile->guardian_name
+                            ) }}"
+                            class="w-full border rounded-lg px-4 py-3"
+                        >
+
+                    </div>
+
+                    <div>
+
+                        <label class="block text-sm font-medium mb-2">
+                            Guardian Phone
+                        </label>
+
+                        <input
+                            type="text"
+                            name="guardian_phone"
+                            value="{{ old(
+                                'guardian_phone',
+                                $profile->guardian_phone
+                            ) }}"
+                            placeholder="01XXXXXXXXX"
+                            class="w-full border rounded-lg px-4 py-3"
+                        >
+
+                    </div>
+
+                </div>
+
+            </section>
+
+            {{-- Address --}}
+            <section class="bg-white border rounded-xl p-6">
+
+                <h2 class="text-xl font-bold">
+                    Address
+                </h2>
+
+                <textarea
+                    name="address"
+                    rows="4"
+                    placeholder="Enter your area / address"
+                    class="w-full border rounded-lg px-4 py-3 mt-5"
+                >{{ old(
+                    'address',
+                    $profile->address
+                ) }}</textarea>
+
+            </section>
+
+            <div class="flex justify-end">
+
+                <button
+                    type="submit"
+                    class="bg-indigo-600 hover:bg-indigo-700 text-white px-7 py-3 rounded-lg font-medium"
+                >
+                    Save Profile
+                </button>
+
+            </div>
+
+        </form>
+
+    </main>
+
+</div>
+
+</body>
+</html>
