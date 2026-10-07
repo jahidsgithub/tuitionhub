@@ -1,0 +1,3104 @@
+<?php
+
+use App\Http\Controllers\AccountSecurityController;
+use App\Http\Controllers\AccountSettingsController;
+
+use App\Http\Controllers\Admin\AssignmentController as AdminAssignmentController;
+use App\Http\Controllers\Admin\AuditLogController;
+use App\Http\Controllers\Admin\ComplaintController as AdminComplaintController;
+use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\PaymentController as AdminPaymentController;
+use App\Http\Controllers\Admin\PaymentSettingController;
+use App\Http\Controllers\Admin\SubscriptionPlanController;
+use App\Http\Controllers\Admin\TeacherVerificationController;
+use App\Http\Controllers\Admin\TuitionModerationController;
+use App\Http\Controllers\Admin\UserManagementController;
+use App\Http\Controllers\Admin\VerificationDocumentController as AdminVerificationDocumentController;
+
+use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\Auth\EmailVerificationController;
+use App\Http\Controllers\Auth\ForgotPasswordController;
+use App\Http\Controllers\Auth\RegisteredUserController;
+use App\Http\Controllers\Auth\ResetPasswordController;
+
+use App\Http\Controllers\NotificationController;
+
+use App\Http\Controllers\Student\AssignmentController as StudentAssignmentController;
+use App\Http\Controllers\Student\ComplaintController as StudentComplaintController;
+use App\Http\Controllers\Student\DashboardController as StudentDashboardController;
+use App\Http\Controllers\Student\ProfileController as StudentProfileController;
+use App\Http\Controllers\Student\TeacherController as StudentTeacherController;
+use App\Http\Controllers\Student\TeacherReviewController;
+use App\Http\Controllers\Student\TuitionApplicationController;
+use App\Http\Controllers\Student\TuitionPostController;
+
+use App\Http\Controllers\Teacher\AssignmentController as TeacherAssignmentController;
+use App\Http\Controllers\Teacher\ComplaintController as TeacherComplaintController;
+use App\Http\Controllers\Teacher\DashboardController as TeacherDashboardController;
+use App\Http\Controllers\Teacher\PaymentController as TeacherPaymentController;
+use App\Http\Controllers\Teacher\ProfileController as TeacherProfileController;
+use App\Http\Controllers\Teacher\SubscriptionController;
+use App\Http\Controllers\Teacher\TeacherRequestController;
+use App\Http\Controllers\Teacher\TuitionController as TeacherTuitionController;
+use App\Http\Controllers\Teacher\VerificationDocumentController as TeacherVerificationDocumentController;
+
+use App\Http\Middleware\EnsureAccountIsActive;
+
+use Illuminate\Support\Facades\Route;
+
+/*
+|--------------------------------------------------------------------------
+| Public
+|--------------------------------------------------------------------------
+*/
+
+Route::get('/', function () {
+    return view('welcome');
+})->name('home');
+
+/*
+|--------------------------------------------------------------------------
+| Guest Authentication
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware('guest')->group(function () {
+
+    Route::get('/register', [
+        RegisteredUserController::class,
+        'create',
+    ])->name('register');
+
+    Route::post('/register', [
+        RegisteredUserController::class,
+        'store',
+    ]);
+
+    Route::get('/login', [
+        AuthenticatedSessionController::class,
+        'create',
+    ])->name('login');
+
+    Route::post('/login', [
+        AuthenticatedSessionController::class,
+        'store',
+    ]);
+
+    Route::get('/forgot-password', [
+        ForgotPasswordController::class,
+        'create',
+    ])->name('password.request');
+
+    Route::post('/forgot-password', [
+        ForgotPasswordController::class,
+        'store',
+    ])->name('password.email');
+
+    Route::get('/reset-password/{token}', [
+        ResetPasswordController::class,
+        'create',
+    ])->name('password.reset');
+
+    Route::post('/reset-password', [
+        ResetPasswordController::class,
+        'store',
+    ])->name('password.update');
+});
+
+/*
+|--------------------------------------------------------------------------
+| Logout
+|--------------------------------------------------------------------------
+|
+| Logout is intentionally outside auth.session and active-account protection.
+| A blocked account must still be able to terminate its current session.
+|
+*/
+
+Route::post('/logout', [
+    AuthenticatedSessionController::class,
+    'destroy',
+])
+    ->middleware('auth')
+    ->name('logout');
+
+/*
+|--------------------------------------------------------------------------
+| Active Authenticated Account Routes
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware([
+    'auth',
+    'auth.session',
+    EnsureAccountIsActive::class,
+])->group(function () {
+
+    /*
+    |--------------------------------------------------------------------------
+    | Email Verification
+    |--------------------------------------------------------------------------
+    */
+
+    Route::get('/verify-email', [
+        EmailVerificationController::class,
+        'notice',
+    ])->name('verification.notice');
+
+    Route::get('/verify-email/{id}/{hash}', [
+        EmailVerificationController::class,
+        'verify',
+    ])
+        ->middleware([
+            'signed',
+            'throttle:6,1',
+        ])
+        ->name('verification.verify');
+
+    Route::post('/email/verification-notification', [
+        EmailVerificationController::class,
+        'resend',
+    ])
+        ->middleware(
+            'throttle:6,1'
+        )
+        ->name('verification.send');
+
+    /*
+    |--------------------------------------------------------------------------
+    | Account Settings
+    |--------------------------------------------------------------------------
+    */
+
+    Route::get('/account/settings', [
+        AccountSettingsController::class,
+        'edit',
+    ])->name('account.settings.edit');
+
+    Route::put('/account/settings', [
+        AccountSettingsController::class,
+        'update',
+    ])->name('account.settings.update');
+
+    /*
+    |--------------------------------------------------------------------------
+    | Account Security
+    |--------------------------------------------------------------------------
+    */
+
+    Route::get('/account/security', [
+        AccountSecurityController::class,
+        'edit',
+    ])->name('account.security.edit');
+
+    Route::put('/account/security/password', [
+        AccountSecurityController::class,
+        'update',
+    ])->name('account.security.update');
+
+    /*
+    |--------------------------------------------------------------------------
+    | Dashboard Redirect
+    |--------------------------------------------------------------------------
+    */
+
+    Route::get('/dashboard', function () {
+
+        $user = auth()->user();
+
+        if (
+            ! $user->isAdmin() &&
+            ! $user->hasVerifiedEmail()
+        ) {
+            return redirect()
+                ->route(
+                    'verification.notice'
+                );
+        }
+
+        if ($user->isAdmin()) {
+            return redirect()
+                ->route(
+                    'admin.dashboard'
+                );
+        }
+
+        if ($user->isTeacher()) {
+            return redirect()
+                ->route(
+                    'teacher.dashboard'
+                );
+        }
+
+        if ($user->isStudent()) {
+            return redirect()
+                ->route(
+                    'student.dashboard'
+                );
+        }
+
+        abort(403);
+
+    })->name('dashboard');
+
+    /*
+    |--------------------------------------------------------------------------
+    | Notifications
+    |--------------------------------------------------------------------------
+    */
+
+    Route::get('/notifications', [
+        NotificationController::class,
+        'index',
+    ])->name('notifications.index');
+
+    Route::patch('/notifications/read-all', [
+        NotificationController::class,
+        'markAllRead',
+    ])->name('notifications.read-all');
+
+    Route::patch('/notifications/{notification}/read', [
+        NotificationController::class,
+        'markRead',
+    ])->name('notifications.read');
+
+    Route::delete('/notifications/{notification}', [
+        NotificationController::class,
+        'destroy',
+    ])->name('notifications.destroy');
+});
+
+/*
+|--------------------------------------------------------------------------
+| Teacher
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware([
+    'auth',
+    'auth.session',
+    EnsureAccountIsActive::class,
+    'verified',
+    'role:teacher',
+])
+    ->prefix('teacher')
+    ->name('teacher.')
+    ->group(function () {
+
+        Route::get('/dashboard', [
+            TeacherDashboardController::class,
+            'index',
+        ])->name('dashboard');
+
+        Route::get('/profile', [
+            TeacherProfileController::class,
+            'edit',
+        ])->name('profile.edit');
+
+        Route::put('/profile', [
+            TeacherProfileController::class,
+            'update',
+        ])->name('profile.update');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Verification Documents
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get('/verification-documents', [
+            TeacherVerificationDocumentController::class,
+            'index',
+        ])->name('verification-documents.index');
+
+        Route::post('/verification-documents', [
+            TeacherVerificationDocumentController::class,
+            'store',
+        ])->name('verification-documents.store');
+
+        Route::get('/verification-documents/{document}/view', [
+            TeacherVerificationDocumentController::class,
+            'view',
+        ])->name('verification-documents.view');
+
+        Route::delete('/verification-documents/{document}', [
+            TeacherVerificationDocumentController::class,
+            'destroy',
+        ])->name('verification-documents.destroy');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Assignments
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get('/assignments', [
+            TeacherAssignmentController::class,
+            'index',
+        ])->name('assignments.index');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Complaints
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get('/complaints', [
+            TeacherComplaintController::class,
+            'index',
+        ])->name('complaints.index');
+
+        Route::get('/assignments/{assignment}/complaint', [
+            TeacherComplaintController::class,
+            'create',
+        ])->name('complaints.create');
+
+        Route::post('/assignments/{assignment}/complaint', [
+            TeacherComplaintController::class,
+            'store',
+        ])->name('complaints.store');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Subscription
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get('/subscription', [
+            SubscriptionController::class,
+            'index',
+        ])->name('subscription.index');
+
+        Route::post('/subscription/{plan}', [
+            SubscriptionController::class,
+            'subscribe',
+        ])->name('subscription.subscribe');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Payment
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get('/payment/{subscription}', [
+            TeacherPaymentController::class,
+            'create',
+        ])->name('payment.create');
+
+        Route::post('/payment/{subscription}', [
+            TeacherPaymentController::class,
+            'store',
+        ])->name('payment.store');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Direct Teacher Requests
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get('/requests', [
+            TeacherRequestController::class,
+            'index',
+        ])->name('requests.index');
+
+        Route::patch('/requests/{teacherRequest}/accept', [
+            TeacherRequestController::class,
+            'accept',
+        ])->name('requests.accept');
+
+        Route::patch('/requests/{teacherRequest}/reject', [
+            TeacherRequestController::class,
+            'reject',
+        ])->name('requests.reject');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Tuition Marketplace
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get('/tuitions', [
+            TeacherTuitionController::class,
+            'index',
+        ])->name('tuitions.index');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Keep before /tuitions/{tuition}
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get('/tuitions/applications', [
+            TeacherTuitionController::class,
+            'applications',
+        ])->name('tuitions.applications');
+
+        Route::get('/tuitions/{tuition}', [
+            TeacherTuitionController::class,
+            'show',
+        ])->name('tuitions.show');
+
+        Route::post('/tuitions/{tuition}/apply', [
+            TeacherTuitionController::class,
+            'apply',
+        ])->name('tuitions.apply');
+
+        Route::patch('/applications/{application}/withdraw', [
+            TeacherTuitionController::class,
+            'withdraw',
+        ])->name('applications.withdraw');
+    });
+
+/*
+|--------------------------------------------------------------------------
+| Student / Guardian
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware([
+    'auth',
+    'auth.session',
+    EnsureAccountIsActive::class,
+    'verified',
+    'role:student',
+])
+    ->prefix('student')
+    ->name('student.')
+    ->group(function () {
+
+        Route::get('/dashboard', [
+            StudentDashboardController::class,
+            'index',
+        ])->name('dashboard');
+
+        Route::get('/profile', [
+            StudentProfileController::class,
+            'edit',
+        ])->name('profile.edit');
+
+        Route::put('/profile', [
+            StudentProfileController::class,
+            'update',
+        ])->name('profile.update');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Assignments
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get('/assignments', [
+            StudentAssignmentController::class,
+            'index',
+        ])->name('assignments.index');
+
+        Route::patch('/assignments/{assignment}/complete', [
+            StudentAssignmentController::class,
+            'complete',
+        ])->name('assignments.complete');
+
+        Route::patch('/assignments/{assignment}/cancel', [
+            StudentAssignmentController::class,
+            'cancel',
+        ])->name('assignments.cancel');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Review
+        |--------------------------------------------------------------------------
+        */
+
+        Route::post('/assignments/{assignment}/review', [
+            TeacherReviewController::class,
+            'store',
+        ])->name('assignments.review.store');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Complaints
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get('/complaints', [
+            StudentComplaintController::class,
+            'index',
+        ])->name('complaints.index');
+
+        Route::get('/assignments/{assignment}/complaint', [
+            StudentComplaintController::class,
+            'create',
+        ])->name('complaints.create');
+
+        Route::post('/assignments/{assignment}/complaint', [
+            StudentComplaintController::class,
+            'store',
+        ])->name('complaints.store');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Find Teachers
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get('/teachers', [
+            StudentTeacherController::class,
+            'index',
+        ])->name('teachers.index');
+
+        Route::get('/teachers/{teacher}', [
+            StudentTeacherController::class,
+            'show',
+        ])->name('teachers.show');
+
+        Route::post('/teachers/{teacher}/request', [
+            StudentTeacherController::class,
+            'requestTeacher',
+        ])->name('teachers.request');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Teacher Requests
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get('/teacher-requests', [
+            StudentTeacherController::class,
+            'requests',
+        ])->name('teacher-requests.index');
+
+        Route::patch('/teacher-requests/{teacherRequest}/cancel', [
+            StudentTeacherController::class,
+            'cancelRequest',
+        ])->name('teacher-requests.cancel');
+
+        Route::patch('/teacher-requests/{teacherRequest}/confirm', [
+            StudentTeacherController::class,
+            'confirmTeacher',
+        ])->name('teacher-requests.confirm');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Tuition Posts
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get('/tuitions', [
+            TuitionPostController::class,
+            'index',
+        ])->name('tuitions.index');
+
+        Route::get('/tuitions/create', [
+            TuitionPostController::class,
+            'create',
+        ])->name('tuitions.create');
+
+        Route::post('/tuitions', [
+            TuitionPostController::class,
+            'store',
+        ])->name('tuitions.store');
+
+        Route::get('/tuitions/{tuition}/edit', [
+            TuitionPostController::class,
+            'edit',
+        ])->name('tuitions.edit');
+
+        Route::put('/tuitions/{tuition}', [
+            TuitionPostController::class,
+            'update',
+        ])->name('tuitions.update');
+
+        Route::patch('/tuitions/{tuition}/close', [
+            TuitionPostController::class,
+            'close',
+        ])->name('tuitions.close');
+
+        Route::delete('/tuitions/{tuition}', [
+            TuitionPostController::class,
+            'destroy',
+        ])->name('tuitions.destroy');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Tuition Applications
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get('/tuitions/{tuition}/applications', [
+            TuitionApplicationController::class,
+            'index',
+        ])->name('tuitions.applications.index');
+
+        Route::patch('/tuitions/{tuition}/applications/{application}/shortlist', [
+            TuitionApplicationController::class,
+            'shortlist',
+        ])->name('tuitions.applications.shortlist');
+
+        Route::patch('/tuitions/{tuition}/applications/{application}/accept', [
+            TuitionApplicationController::class,
+            'accept',
+        ])->name('tuitions.applications.accept');
+
+        Route::patch('/tuitions/{tuition}/applications/{application}/reject', [
+            TuitionApplicationController::class,
+            'reject',
+        ])->name('tuitions.applications.reject');
+    });
+
+/*
+|--------------------------------------------------------------------------
+| Admin
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware([
+    'auth',
+    'auth.session',
+    EnsureAccountIsActive::class,
+    'role:admin',
+    'admin.audit',
+])
+    ->prefix('admin')
+    ->name('admin.')
+    ->group(function () {
+
+        Route::get('/dashboard', [
+            AdminDashboardController::class,
+            'index',
+        ])->name('dashboard');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Users
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get('/users', [
+            UserManagementController::class,
+            'index',
+        ])->name('users.index');
+
+        Route::patch('/users/{user}/activate', [
+            UserManagementController::class,
+            'activate',
+        ])->name('users.activate');
+
+        Route::patch('/users/{user}/inactive', [
+            UserManagementController::class,
+            'inactive',
+        ])->name('users.inactive');
+
+        Route::patch('/users/{user}/suspend', [
+            UserManagementController::class,
+            'suspend',
+        ])->name('users.suspend');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Teacher Verification
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get('/teachers', [
+            TeacherVerificationController::class,
+            'index',
+        ])->name('teachers.index');
+
+        Route::patch('/teachers/{teacher}/verify', [
+            TeacherVerificationController::class,
+            'verify',
+        ])->name('teachers.verify');
+
+        Route::patch('/teachers/{teacher}/unverify', [
+            TeacherVerificationController::class,
+            'unverify',
+        ])->name('teachers.unverify');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Verification Documents
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get('/verification-documents', [
+            AdminVerificationDocumentController::class,
+            'index',
+        ])->name('verification-documents.index');
+
+        Route::get('/verification-documents/{document}/view', [
+            AdminVerificationDocumentController::class,
+            'view',
+        ])->name('verification-documents.view');
+
+        Route::patch('/verification-documents/{document}/approve', [
+            AdminVerificationDocumentController::class,
+            'approve',
+        ])->name('verification-documents.approve');
+
+        Route::patch('/verification-documents/{document}/reject', [
+            AdminVerificationDocumentController::class,
+            'reject',
+        ])->name('verification-documents.reject');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Tuition Moderation
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get('/tuitions', [
+            TuitionModerationController::class,
+            'index',
+        ])->name('tuitions.index');
+
+        Route::patch('/tuitions/{tuition}/publish', [
+            TuitionModerationController::class,
+            'publish',
+        ])->name('tuitions.publish');
+
+        Route::patch('/tuitions/{tuition}/pending', [
+            TuitionModerationController::class,
+            'pending',
+        ])->name('tuitions.pending');
+
+        Route::patch('/tuitions/{tuition}/close', [
+            TuitionModerationController::class,
+            'close',
+        ])->name('tuitions.close');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Assignments
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get('/assignments', [
+            AdminAssignmentController::class,
+            'index',
+        ])->name('assignments.index');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Complaints
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get('/complaints', [
+            AdminComplaintController::class,
+            'index',
+        ])->name('complaints.index');
+
+        Route::patch('/complaints/{complaint}', [
+            AdminComplaintController::class,
+            'update',
+        ])->name('complaints.update');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Payments
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get('/payments', [
+            AdminPaymentController::class,
+            'index',
+        ])->name('payments.index');
+
+        Route::patch('/payments/{payment}/approve', [
+            AdminPaymentController::class,
+            'approve',
+        ])->name('payments.approve');
+
+        Route::patch('/payments/{payment}/reject', [
+            AdminPaymentController::class,
+            'reject',
+        ])->name('payments.reject');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Payment Settings
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get('/payment-settings', [
+            PaymentSettingController::class,
+            'edit',
+        ])->name('payment-settings.edit');
+
+        Route::put('/payment-settings', [
+            PaymentSettingController::class,
+            'update',
+        ])->name('payment-settings.update');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Subscription Plans
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get('/subscription-plans', [
+            SubscriptionPlanController::class,
+            'index',
+        ])->name('subscription-plans.index');
+
+        Route::get('/subscription-plans/{plan}/edit', [
+            SubscriptionPlanController::class,
+            'edit',
+        ])->name('subscription-plans.edit');
+
+        Route::put('/subscription-plans/{plan}', [
+            SubscriptionPlanController::class,
+            'update',
+        ])->name('subscription-plans.update');
+
+        Route::patch('/subscription-plans/{plan}/toggle', [
+            SubscriptionPlanController::class,
+            'toggle',
+        ])->name('subscription-plans.toggle');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Audit Logs
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get('/audit-logs', [
+            AuditLogController::class,
+            'index',
+        ])->name('audit-logs.index');
+    });
+<?php
+
+namespace App\Http\Controllers\Teacher;
+
+use App\Http\Controllers\Controller;
+use App\Models\Location;
+use App\Models\Subject;
+use App\Models\TeacherProfile;
+use App\Services\AdminNotificationService;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\View\View;
+
+class ProfileController extends Controller
+{
+    /**
+     * Show teacher profile edit page.
+     */
+    public function edit(): View
+    {
+        $user = auth()->user();
+
+        $profile = TeacherProfile::firstOrCreate(
+            [
+                'user_id' => $user->id,
+            ],
+            [
+                'experience_years' => 0,
+                'teaching_mode' => 'offline',
+                'is_verified' => false,
+                'is_available' => true,
+            ]
+        );
+
+        $profile->load([
+            'subjects',
+            'locations',
+        ]);
+
+        $subjects = Subject::query()
+            ->where('status', true)
+            ->orderBy('name')
+            ->get();
+
+        $locations = Location::query()
+            ->where('status', true)
+            ->orderBy('district')
+            ->orderBy('area')
+            ->get();
+
+        return view(
+            'teacher.profile.edit',
+            compact(
+                'user',
+                'profile',
+                'subjects',
+                'locations'
+            )
+        );
+    }
+
+    /**
+     * Update teacher profile.
+     */
+    public function update(
+        Request $request
+    ): RedirectResponse {
+        $user = auth()->user();
+
+        $profile = TeacherProfile::firstOrCreate(
+            [
+                'user_id' => $user->id,
+            ],
+            [
+                'experience_years' => 0,
+                'teaching_mode' => 'offline',
+                'is_verified' => false,
+                'is_available' => true,
+            ]
+        );
+
+        $validated = $request->validate([
+            'profile_photo' => [
+                'nullable',
+                'image',
+                'mimes:jpg,jpeg,png,webp',
+                'max:2048',
+            ],
+
+            'gender' => [
+                'required',
+                'in:male,female,other',
+            ],
+
+            'university' => [
+                'required',
+                'string',
+                'max:255',
+            ],
+
+            'department' => [
+                'required',
+                'string',
+                'max:255',
+            ],
+
+            'degree' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
+
+            'experience_years' => [
+                'required',
+                'integer',
+                'min:0',
+                'max:60',
+            ],
+
+            'bio' => [
+                'nullable',
+                'string',
+                'max:3000',
+            ],
+
+            'expected_salary_min' => [
+                'nullable',
+                'numeric',
+                'min:0',
+                'max:9999999',
+            ],
+
+            'expected_salary_max' => [
+                'nullable',
+                'numeric',
+                'min:0',
+                'max:9999999',
+                'gte:expected_salary_min',
+            ],
+
+            'teaching_mode' => [
+                'required',
+                'in:offline,online,both',
+            ],
+
+            'subjects' => [
+                'required',
+                'array',
+                'min:1',
+            ],
+
+            'subjects.*' => [
+                'integer',
+                'exists:subjects,id',
+            ],
+
+            'locations' => [
+                'nullable',
+                'array',
+            ],
+
+            'locations.*' => [
+                'integer',
+                'exists:locations,id',
+            ],
+        ]);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Detect Verification Sensitive Changes
+        |--------------------------------------------------------------------------
+        */
+
+        $oldSubjectIds = $profile
+            ->subjects()
+            ->pluck('subjects.id')
+            ->sort()
+            ->values()
+            ->all();
+
+        $oldLocationIds = $profile
+            ->locations()
+            ->pluck('locations.id')
+            ->sort()
+            ->values()
+            ->all();
+
+        $newSubjectIds = collect(
+            $validated['subjects']
+        )
+            ->map(fn ($id) => (int) $id)
+            ->sort()
+            ->values()
+            ->all();
+
+        $newLocationIds = collect(
+            $validated['locations'] ?? []
+        )
+            ->map(fn ($id) => (int) $id)
+            ->sort()
+            ->values()
+            ->all();
+
+        $sensitiveChanged =
+            $profile->gender !== $validated['gender']
+            || $profile->university !== $validated['university']
+            || $profile->department !== $validated['department']
+            || $profile->degree !== ($validated['degree'] ?? null)
+            || (int) $profile->experience_years !== (int) $validated['experience_years']
+            || $profile->teaching_mode !== $validated['teaching_mode']
+            || $oldSubjectIds !== $newSubjectIds
+            || $oldLocationIds !== $newLocationIds
+            || $request->hasFile('profile_photo');
+
+        $wasVerified = (bool) $profile->is_verified;
+
+        $oldPhoto = $profile->profile_photo;
+
+        $newPhotoPath = null;
+
+        if ($request->hasFile('profile_photo')) {
+            $newPhotoPath = $request
+                ->file('profile_photo')
+                ->store(
+                    'teacher-profiles',
+                    'public'
+                );
+        }
+
+        DB::transaction(
+            function () use (
+                $request,
+                $profile,
+                $validated,
+                $newPhotoPath,
+                $sensitiveChanged,
+                $wasVerified
+            ) {
+                $profile->update([
+                    'profile_photo' =>
+                        $newPhotoPath
+                            ?: $profile->profile_photo,
+
+                    'gender' =>
+                        $validated['gender'],
+
+                    'university' =>
+                        $validated['university'],
+
+                    'department' =>
+                        $validated['department'],
+
+                    'degree' =>
+                        $validated['degree'] ?? null,
+
+                    'experience_years' =>
+                        $validated['experience_years'],
+
+                    'bio' =>
+                        $validated['bio'] ?? null,
+
+                    'expected_salary_min' =>
+                        $validated['expected_salary_min'] ?? null,
+
+                    'expected_salary_max' =>
+                        $validated['expected_salary_max'] ?? null,
+
+                    'teaching_mode' =>
+                        $validated['teaching_mode'],
+
+                    'is_available' =>
+                        $request->boolean(
+                            'is_available'
+                        ),
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Verified Profile Changed → Review Again
+                    |--------------------------------------------------------------------------
+                    */
+
+                    'is_verified' =>
+                        (
+                            $wasVerified &&
+                            $sensitiveChanged
+                        )
+                            ? false
+                            : $profile->is_verified,
+                ]);
+
+                $profile
+                    ->subjects()
+                    ->sync(
+                        $validated['subjects']
+                    );
+
+                $profile
+                    ->locations()
+                    ->sync(
+                        $validated['locations'] ?? []
+                    );
+            }
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | Delete Previous Photo After Successful Save
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            $newPhotoPath &&
+            $oldPhoto &&
+            $oldPhoto !== $newPhotoPath
+        ) {
+            Storage::disk('public')
+                ->delete($oldPhoto);
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Admin Re-verification Notification
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            $wasVerified &&
+            $sensitiveChanged
+        ) {
+            AdminNotificationService::send(
+                'Teacher Profile Requires Re-verification',
+                $user->name
+                    .' updated verified profile information. The profile now requires review again.',
+                route(
+                    'admin.teachers.index',
+                    [
+                        'status' => 'pending',
+                        'search' => $user->email,
+                    ]
+                ),
+                'teacher_verification'
+            );
+
+            return redirect()
+                ->route('teacher.profile.edit')
+                ->with(
+                    'success',
+                    'Profile updated successfully. Because verified information was changed, your profile has been sent for admin re-verification.'
+                );
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Notify Admin For First Profile Completion / Update
+        |--------------------------------------------------------------------------
+        */
+
+        if (! $profile->is_verified) {
+            AdminNotificationService::send(
+                'Teacher Profile Ready for Review',
+                $user->name
+                    .' updated the teacher profile and is waiting for verification.',
+                route(
+                    'admin.teachers.index',
+                    [
+                        'status' => 'pending',
+                        'search' => $user->email,
+                    ]
+                ),
+                'teacher_verification'
+            );
+        }
+
+        return redirect()
+            ->route('teacher.profile.edit')
+            ->with(
+                'success',
+                'Profile updated successfully.'
+            );
+    }
+}
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Models\TeacherProfile;
+use App\Services\UserNotificationService;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\View\View;
+
+class TeacherVerificationController extends Controller
+{
+    public function index(
+        Request $request
+    ): View {
+        $query = TeacherProfile::query()
+            ->with([
+                'user',
+                'subjects',
+                'locations',
+            ])
+            ->withCount([
+                'verificationDocuments',
+
+                'verificationDocuments as approved_documents_count' => function ($q) {
+                    $q->where(
+                        'status',
+                        'approved'
+                    );
+                },
+
+                'verificationDocuments as pending_documents_count' => function ($q) {
+                    $q->where(
+                        'status',
+                        'pending'
+                    );
+                },
+            ]);
+
+        if ($request->filled('search')) {
+            $search = trim(
+                $request->search
+            );
+
+            $query->whereHas(
+                'user',
+                function ($userQuery) use ($search) {
+                    $userQuery
+                        ->where(
+                            'name',
+                            'like',
+                            "%{$search}%"
+                        )
+                        ->orWhere(
+                            'email',
+                            'like',
+                            "%{$search}%"
+                        )
+                        ->orWhere(
+                            'phone',
+                            'like',
+                            "%{$search}%"
+                        );
+                }
+            );
+        }
+
+        if ($request->filled('status')) {
+            if (
+                $request->status ===
+                'verified'
+            ) {
+                $query->where(
+                    'is_verified',
+                    true
+                );
+            }
+
+            if (
+                $request->status ===
+                'pending'
+            ) {
+                $query->where(
+                    'is_verified',
+                    false
+                );
+            }
+        }
+
+        $teachers = $query
+            ->latest()
+            ->paginate(15)
+            ->withQueryString();
+
+        return view(
+            'admin.teachers.index',
+            compact('teachers')
+        );
+    }
+
+    public function verify(
+        TeacherProfile $teacher
+    ): RedirectResponse {
+        $teacher->load([
+            'user',
+            'subjects',
+            'locations',
+        ]);
+
+        if ($teacher->is_verified) {
+            return back()->with(
+                'error',
+                'This teacher is already verified.'
+            );
+        }
+
+        if (! $teacher->isCompleteForVerification()) {
+            $missing = implode(
+                ', ',
+                $teacher->missingVerificationFields()
+            );
+
+            return back()->with(
+                'error',
+                'Teacher profile is incomplete. Missing: '
+                    .$missing
+                    .'.'
+            );
+        }
+
+        if (
+            ! $teacher
+                ->hasApprovedVerificationDocument()
+        ) {
+            return back()->with(
+                'error',
+                'This teacher cannot be verified until at least one verification document has been approved.'
+            );
+        }
+
+        if (
+            ! $teacher->user ||
+            $teacher->user->status !== 'active'
+        ) {
+            return back()->with(
+                'error',
+                'This teacher account is not active.'
+            );
+        }
+
+        $teacher->update([
+            'is_verified' => true,
+        ]);
+
+        UserNotificationService::send(
+            $teacher->user,
+            'Teacher Profile Verified',
+            'Your teacher profile has been verified. You can now access tuition opportunities and appear in the teacher marketplace.',
+            route(
+                'teacher.dashboard'
+            ),
+            'teacher_verification'
+        );
+
+        return back()->with(
+            'success',
+            'Teacher verified successfully.'
+        );
+    }
+
+    public function unverify(
+        TeacherProfile $teacher
+    ): RedirectResponse {
+        $teacher->load('user');
+
+        if (! $teacher->is_verified) {
+            return back()->with(
+                'error',
+                'This teacher is already unverified.'
+            );
+        }
+
+        $teacher->update([
+            'is_verified' => false,
+        ]);
+
+        if ($teacher->user) {
+            UserNotificationService::send(
+                $teacher->user,
+                'Teacher Verification Removed',
+                'Your teacher verification status has been removed. Please review your profile or contact support.',
+                route(
+                    'teacher.profile.edit'
+                ),
+                'teacher_verification'
+            );
+        }
+
+        return back()->with(
+            'success',
+            'Teacher verification removed.'
+        );
+    }
+}
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
+class TeacherProfile extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'user_id',
+        'profile_photo',
+        'gender',
+        'university',
+        'department',
+        'degree',
+        'experience_years',
+        'bio',
+        'expected_salary_min',
+        'expected_salary_max',
+        'teaching_mode',
+        'is_verified',
+        'is_available',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'experience_years' => 'integer',
+            'expected_salary_min' => 'decimal:2',
+            'expected_salary_max' => 'decimal:2',
+            'is_verified' => 'boolean',
+            'is_available' => 'boolean',
+        ];
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(
+            User::class
+        );
+    }
+
+    public function subjects(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Subject::class,
+            'subject_teacher_profile'
+        )->withTimestamps();
+    }
+
+    public function locations(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Location::class,
+            'location_teacher_profile'
+        )->withTimestamps();
+    }
+
+    public function applications(): HasMany
+    {
+        return $this->hasMany(
+            TuitionApplication::class
+        );
+    }
+
+    public function teacherRequests(): HasMany
+    {
+        return $this->hasMany(
+            TeacherRequest::class
+        );
+    }
+
+    public function verificationDocuments(): HasMany
+    {
+        return $this->hasMany(
+            TeacherVerificationDocument::class
+        );
+    }
+
+    public function assignments(): HasMany
+    {
+        return $this->hasMany(
+            TuitionAssignment::class
+        );
+    }
+
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(
+            TeacherReview::class
+        );
+    }
+
+    public function hasApprovedVerificationDocument(): bool
+    {
+        return $this
+            ->verificationDocuments()
+            ->where(
+                'status',
+                'approved'
+            )
+            ->exists();
+    }
+
+    public function isCompleteForVerification(): bool
+    {
+        return empty(
+            $this->missingVerificationFields()
+        );
+    }
+
+    public function missingVerificationFields(): array
+    {
+        $missing = [];
+
+        if (! $this->profile_photo) {
+            $missing[] = 'profile photo';
+        }
+
+        if (! $this->gender) {
+            $missing[] = 'gender';
+        }
+
+        if (! $this->university) {
+            $missing[] = 'university / institution';
+        }
+
+        if (! $this->department) {
+            $missing[] = 'department';
+        }
+
+        if (! $this->teaching_mode) {
+            $missing[] = 'teaching mode';
+        }
+
+        if (
+            ! $this
+                ->subjects()
+                ->exists()
+        ) {
+            $missing[] = 'at least one subject';
+        }
+
+        if (
+            in_array(
+                $this->teaching_mode,
+                [
+                    'offline',
+                    'both',
+                ],
+                true
+            )
+            &&
+            ! $this
+                ->locations()
+                ->exists()
+        ) {
+            $missing[] = 'at least one teaching location';
+        }
+
+        return $missing;
+    }
+
+    public function averageRating(): float
+    {
+        return round(
+            (float) (
+                $this
+                    ->reviews()
+                    ->avg('rating') ?? 0
+            ),
+            1
+        );
+    }
+
+    public function completedAssignmentsCount(): int
+    {
+        return $this
+            ->assignments()
+            ->where(
+                'status',
+                'completed'
+            )
+            ->count();
+    }
+}
+@extends('layouts.app')
+
+@section('title', 'Teacher Profile - Tuition Hub')
+
+@php
+    $pageTitle = 'Teacher Profile';
+    $pageSubtitle = 'Teacher Account';
+
+    $selectedSubjects = old(
+        'subjects',
+        $profile->subjects->pluck('id')->toArray()
+    );
+
+    $selectedLocations = old(
+        'locations',
+        $profile->locations->pluck('id')->toArray()
+    );
+
+    $subjectGroups = $subjects->groupBy('category');
+
+    $categoryOrder = [
+        'General',
+        'Science',
+        'Business Studies',
+        'Humanities',
+        'Other',
+    ];
+@endphp
+
+@section('content')
+
+<div class="mx-auto max-w-5xl">
+
+    <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+
+        <div>
+
+            <h2 class="text-2xl font-black text-slate-900">
+                Teacher Profile
+            </h2>
+
+            <p class="mt-1 text-sm text-slate-500">
+                Complete your profile before joining the Tuition Hub marketplace.
+            </p>
+
+        </div>
+
+        @if($profile->is_verified)
+
+            <span class="rounded-full bg-emerald-50 px-4 py-2 text-sm font-bold text-emerald-700">
+                Verified Teacher
+            </span>
+
+        @else
+
+            <span class="rounded-full bg-amber-50 px-4 py-2 text-sm font-bold text-amber-700">
+                Verification Pending
+            </span>
+
+        @endif
+
+    </div>
+
+    @if($profile->is_verified)
+
+        <div class="mt-5 rounded-2xl border border-indigo-100 bg-indigo-50 p-4 text-sm leading-6 text-indigo-800">
+            Your profile is verified. Changing your photo, education,
+            subjects, locations, gender, experience or teaching mode will
+            require admin verification again.
+        </div>
+
+    @endif
+
+    <form
+        method="POST"
+        action="{{ route('teacher.profile.update') }}"
+        enctype="multipart/form-data"
+        class="mt-6 space-y-5"
+    >
+        @csrf
+        @method('PUT')
+
+        <section class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+
+            <h3 class="text-lg font-bold text-slate-900">
+                Profile Photo
+            </h3>
+
+            <div class="mt-5 flex flex-col gap-6 sm:flex-row sm:items-center">
+
+                @if($profile->profile_photo)
+
+                    <img
+                        src="{{ asset(
+                            'storage/'.$profile->profile_photo
+                        ) }}"
+                        alt="{{ $user->name }}"
+                        class="h-28 w-28 rounded-2xl border border-slate-200 object-cover"
+                    >
+
+                @else
+
+                    <div class="flex h-28 w-28 items-center justify-center rounded-2xl bg-indigo-50 text-3xl font-black text-indigo-700">
+                        {{
+                            strtoupper(
+                                substr(
+                                    $user->name,
+                                    0,
+                                    1
+                                )
+                            )
+                        }}
+                    </div>
+
+                @endif
+
+                <div class="flex-1">
+
+                    <label
+                        for="profile_photo"
+                        class="mb-2 block text-sm font-semibold text-slate-700"
+                    >
+                        Upload Photo
+                    </label>
+
+                    <input
+                        id="profile_photo"
+                        type="file"
+                        name="profile_photo"
+                        accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                        class="w-full rounded-xl border border-slate-300 bg-white p-3 text-sm"
+                    >
+
+                    <p class="mt-2 text-xs text-slate-500">
+                        JPG, PNG or WEBP. Maximum size 2 MB.
+                    </p>
+
+                </div>
+
+            </div>
+
+        </section>
+
+        <section class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+
+            <h3 class="text-lg font-bold text-slate-900">
+                Basic Information
+            </h3>
+
+            <div class="mt-5 grid gap-5 md:grid-cols-2">
+
+                <div>
+
+                    <label class="mb-2 block text-sm font-semibold text-slate-700">
+                        Name
+                    </label>
+
+                    <input
+                        type="text"
+                        value="{{ $user->name }}"
+                        disabled
+                        class="w-full rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-500"
+                    >
+
+                </div>
+
+                <div>
+
+                    <label class="mb-2 block text-sm font-semibold text-slate-700">
+                        Email
+                    </label>
+
+                    <input
+                        type="email"
+                        value="{{ $user->email }}"
+                        disabled
+                        class="w-full rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-500"
+                    >
+
+                </div>
+
+                <div>
+
+                    <label class="mb-2 block text-sm font-semibold text-slate-700">
+                        Phone
+                    </label>
+
+                    <input
+                        type="text"
+                        value="{{ $user->phone }}"
+                        disabled
+                        class="w-full rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-500"
+                    >
+
+                </div>
+
+                <div>
+
+                    <label
+                        for="gender"
+                        class="mb-2 block text-sm font-semibold text-slate-700"
+                    >
+                        Gender
+                    </label>
+
+                    <select
+                        id="gender"
+                        name="gender"
+                        required
+                        class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
+                    >
+                        <option value="">
+                            Select Gender
+                        </option>
+
+                        <option
+                            value="male"
+                            @selected(
+                                old(
+                                    'gender',
+                                    $profile->gender
+                                ) === 'male'
+                            )
+                        >
+                            Male
+                        </option>
+
+                        <option
+                            value="female"
+                            @selected(
+                                old(
+                                    'gender',
+                                    $profile->gender
+                                ) === 'female'
+                            )
+                        >
+                            Female
+                        </option>
+
+                        <option
+                            value="other"
+                            @selected(
+                                old(
+                                    'gender',
+                                    $profile->gender
+                                ) === 'other'
+                            )
+                        >
+                            Other
+                        </option>
+
+                    </select>
+
+                </div>
+
+            </div>
+
+        </section>
+
+        <section class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+
+            <h3 class="text-lg font-bold text-slate-900">
+                Education & Experience
+            </h3>
+
+            <div class="mt-5 grid gap-5 md:grid-cols-2">
+
+                <div>
+
+                    <label
+                        for="university"
+                        class="mb-2 block text-sm font-semibold text-slate-700"
+                    >
+                        University / Institution
+                    </label>
+
+                    <input
+                        id="university"
+                        type="text"
+                        name="university"
+                        value="{{ old(
+                            'university',
+                            $profile->university
+                        ) }}"
+                        required
+                        class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
+                    >
+
+                </div>
+
+                <div>
+
+                    <label
+                        for="department"
+                        class="mb-2 block text-sm font-semibold text-slate-700"
+                    >
+                        Department
+                    </label>
+
+                    <input
+                        id="department"
+                        type="text"
+                        name="department"
+                        value="{{ old(
+                            'department',
+                            $profile->department
+                        ) }}"
+                        required
+                        class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
+                    >
+
+                </div>
+
+                <div>
+
+                    <label
+                        for="degree"
+                        class="mb-2 block text-sm font-semibold text-slate-700"
+                    >
+                        Degree
+                    </label>
+
+                    <input
+                        id="degree"
+                        type="text"
+                        name="degree"
+                        value="{{ old(
+                            'degree',
+                            $profile->degree
+                        ) }}"
+                        class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
+                    >
+
+                </div>
+
+                <div>
+
+                    <label
+                        for="experience_years"
+                        class="mb-2 block text-sm font-semibold text-slate-700"
+                    >
+                        Teaching Experience (Years)
+                    </label>
+
+                    <input
+                        id="experience_years"
+                        type="number"
+                        name="experience_years"
+                        min="0"
+                        max="60"
+                        value="{{ old(
+                            'experience_years',
+                            $profile->experience_years
+                        ) }}"
+                        required
+                        class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
+                    >
+
+                </div>
+
+            </div>
+
+            <div class="mt-5">
+
+                <label
+                    for="bio"
+                    class="mb-2 block text-sm font-semibold text-slate-700"
+                >
+                    About You
+                </label>
+
+                <textarea
+                    id="bio"
+                    name="bio"
+                    rows="5"
+                    maxlength="3000"
+                    placeholder="Write a short introduction about your teaching experience..."
+                    class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
+                >{{ old(
+                    'bio',
+                    $profile->bio
+                ) }}</textarea>
+
+            </div>
+
+        </section>
+
+        <section class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+
+            <div>
+
+                <h3 class="text-lg font-bold text-slate-900">
+                    Subjects You Teach
+                </h3>
+
+                <p class="mt-1 text-sm text-slate-500">
+                    Select subjects from one or more academic groups.
+                </p>
+
+            </div>
+
+            <div class="mt-6 space-y-6">
+
+                @foreach($categoryOrder as $category)
+
+                    @if(isset($subjectGroups[$category]))
+
+                        <div class="overflow-hidden rounded-2xl border border-slate-200">
+
+                            <div class="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-5 py-3">
+
+                                <div>
+
+                                    <h4 class="font-bold text-slate-900">
+                                        {{ $category }}
+                                    </h4>
+
+                                    <p class="mt-0.5 text-xs text-slate-500">
+                                        {{ $subjectGroups[$category]->count() }}
+                                        subject(s)
+                                    </p>
+
+                                </div>
+
+                                <button
+                                    type="button"
+                                    data-subject-group-toggle="{{ $category }}"
+                                    class="text-xs font-bold text-indigo-600 hover:text-indigo-700"
+                                >
+                                    Select All
+                                </button>
+
+                            </div>
+
+                            <div
+                                data-subject-group="{{ $category }}"
+                                class="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3"
+                            >
+
+                                @foreach($subjectGroups[$category] as $subject)
+
+                                    <label class="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 px-4 py-3 transition hover:border-indigo-300 hover:bg-indigo-50">
+
+                                        <input
+                                            type="checkbox"
+                                            name="subjects[]"
+                                            value="{{ $subject->id }}"
+                                            @checked(
+                                                in_array(
+                                                    $subject->id,
+                                                    $selectedSubjects
+                                                )
+                                            )
+                                            class="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                                        >
+
+                                        <span class="text-sm font-semibold text-slate-700">
+                                            {{ $subject->name }}
+                                        </span>
+
+                                    </label>
+
+                                @endforeach
+
+                            </div>
+
+                        </div>
+
+                    @endif
+
+                @endforeach
+
+            </div>
+
+        </section>
+
+        <section class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+
+            <h3 class="text-lg font-bold text-slate-900">
+                Preferred Teaching Locations
+            </h3>
+
+            <p class="mt-1 text-sm text-slate-500">
+                Select division and district, then choose one or more upazila / areas.
+                Your previous selections remain selected when you change district.
+            </p>
+
+            <div class="mt-5 grid gap-4 md:grid-cols-2">
+
+                <div>
+
+                    <label
+                        for="teacher_location_division"
+                        class="mb-2 block text-sm font-semibold text-slate-700"
+                    >
+                        Division
+                    </label>
+
+                    <select
+                        id="teacher_location_division"
+                        class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
+                    >
+                        <option value="">
+                            Select Division
+                        </option>
+                    </select>
+
+                </div>
+
+                <div>
+
+                    <label
+                        for="teacher_location_district"
+                        class="mb-2 block text-sm font-semibold text-slate-700"
+                    >
+                        District
+                    </label>
+
+                    <select
+                        id="teacher_location_district"
+                        disabled
+                        class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm disabled:bg-slate-100 disabled:text-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
+                    >
+                        <option value="">
+                            Select District
+                        </option>
+                    </select>
+
+                </div>
+
+            </div>
+
+            <div class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+
+                <p
+                    id="teacher_location_hint"
+                    class="text-sm text-slate-500"
+                >
+                    Select a division and district to view available areas.
+                </p>
+
+                <span
+                    id="teacher_location_selected_count"
+                    class="w-fit rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-700"
+                >
+                    {{ count($selectedLocations) }} selected
+                </span>
+
+            </div>
+
+            <div
+                id="teacher_location_list"
+                class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
+            >
+
+                @foreach($locations as $location)
+
+                    <label
+                        data-location-card
+                        data-division="{{ $location->division }}"
+                        data-district="{{ $location->district }}"
+                        class="hidden cursor-pointer items-start gap-3 rounded-xl border border-slate-200 px-4 py-3 transition hover:border-indigo-200 hover:bg-indigo-50/50"
+                    >
+
+                        <input
+                            type="checkbox"
+                            name="locations[]"
+                            value="{{ $location->id }}"
+                            @checked(
+                                in_array(
+                                    $location->id,
+                                    $selectedLocations
+                                )
+                            )
+                            class="mt-1 h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                        >
+
+                        <span class="text-sm">
+
+                            <strong class="text-slate-800">
+                                {{
+                                    $location->area ===
+                                    $location->district
+                                        ? $location->area.' (Whole District)'
+                                        : $location->area
+                                }}
+                            </strong>
+
+                            <span class="mt-1 block text-xs text-slate-500">
+                                {{ $location->district }},
+                                {{ $location->division }}
+                            </span>
+
+                        </span>
+
+                    </label>
+
+                @endforeach
+
+            </div>
+
+        </section>
+
+        <section class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+
+            <h3 class="text-lg font-bold text-slate-900">
+                Teaching Preferences
+            </h3>
+
+            <div class="mt-5 grid gap-5 md:grid-cols-3">
+
+                <div>
+
+                    <label
+                        for="teaching_mode"
+                        class="mb-2 block text-sm font-semibold text-slate-700"
+                    >
+                        Teaching Mode
+                    </label>
+
+                    <select
+                        id="teaching_mode"
+                        name="teaching_mode"
+                        required
+                        class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
+                    >
+
+                        <option
+                            value="offline"
+                            @selected(
+                                old(
+                                    'teaching_mode',
+                                    $profile->teaching_mode
+                                ) === 'offline'
+                            )
+                        >
+                            Offline
+                        </option>
+
+                        <option
+                            value="online"
+                            @selected(
+                                old(
+                                    'teaching_mode',
+                                    $profile->teaching_mode
+                                ) === 'online'
+                            )
+                        >
+                            Online
+                        </option>
+
+                        <option
+                            value="both"
+                            @selected(
+                                old(
+                                    'teaching_mode',
+                                    $profile->teaching_mode
+                                ) === 'both'
+                            )
+                        >
+                            Both
+                        </option>
+
+                    </select>
+
+                </div>
+
+                <div>
+
+                    <label
+                        for="expected_salary_min"
+                        class="mb-2 block text-sm font-semibold text-slate-700"
+                    >
+                        Minimum Expected Salary
+                    </label>
+
+                    <input
+                        id="expected_salary_min"
+                        type="number"
+                        name="expected_salary_min"
+                        min="0"
+                        max="9999999"
+                        value="{{ old(
+                            'expected_salary_min',
+                            $profile->expected_salary_min
+                        ) }}"
+                        class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
+                    >
+
+                </div>
+
+                <div>
+
+                    <label
+                        for="expected_salary_max"
+                        class="mb-2 block text-sm font-semibold text-slate-700"
+                    >
+                        Maximum Expected Salary
+                    </label>
+
+                    <input
+                        id="expected_salary_max"
+                        type="number"
+                        name="expected_salary_max"
+                        min="0"
+                        max="9999999"
+                        value="{{ old(
+                            'expected_salary_max',
+                            $profile->expected_salary_max
+                        ) }}"
+                        class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
+                    >
+
+                </div>
+
+            </div>
+
+            <label class="mt-6 flex cursor-pointer items-start gap-3 rounded-xl bg-slate-50 p-4">
+
+                <input
+                    type="checkbox"
+                    name="is_available"
+                    value="1"
+                    @checked(
+                        old(
+                            'is_available',
+                            $profile->is_available
+                        )
+                    )
+                    class="mt-1 h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                >
+
+                <span>
+
+                    <strong class="text-slate-800">
+                        Available for tuition
+                    </strong>
+
+                    <span class="mt-1 block text-sm text-slate-500">
+                        Students can find and request you when your profile is verified.
+                    </span>
+
+                </span>
+
+            </label>
+
+        </section>
+
+        <div class="flex justify-end">
+
+            <button
+                type="submit"
+                class="rounded-xl bg-indigo-600 px-7 py-3 text-sm font-bold text-white shadow-lg shadow-indigo-100 transition hover:bg-indigo-700"
+            >
+                Save Profile
+            </button>
+
+        </div>
+
+    </form>
+
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+
+    /*
+    |--------------------------------------------------------------------------
+    | Subject Group Select All
+    |--------------------------------------------------------------------------
+    */
+
+    const subjectGroupButtons =
+        document.querySelectorAll(
+            '[data-subject-group-toggle]'
+        );
+
+    subjectGroupButtons.forEach((button) => {
+
+        const category =
+            button.dataset.subjectGroupToggle;
+
+        const group =
+            document.querySelector(
+                `[data-subject-group="${CSS.escape(category)}"]`
+            );
+
+        if (! group) {
+            return;
+        }
+
+        const checkboxes = Array.from(
+            group.querySelectorAll(
+                'input[type="checkbox"][name="subjects[]"]'
+            )
+        );
+
+        const updateButtonText = () => {
+
+            const allChecked =
+                checkboxes.length > 0 &&
+                checkboxes.every(
+                    (checkbox) =>
+                        checkbox.checked
+                );
+
+            button.textContent =
+                allChecked
+                    ? 'Clear All'
+                    : 'Select All';
+        };
+
+        button.addEventListener(
+            'click',
+            () => {
+
+                const allChecked =
+                    checkboxes.length > 0 &&
+                    checkboxes.every(
+                        (checkbox) =>
+                            checkbox.checked
+                    );
+
+                checkboxes.forEach(
+                    (checkbox) => {
+                        checkbox.checked =
+                            ! allChecked;
+                    }
+                );
+
+                updateButtonText();
+            }
+        );
+
+        checkboxes.forEach(
+            (checkbox) => {
+                checkbox.addEventListener(
+                    'change',
+                    updateButtonText
+                );
+            }
+        );
+
+        updateButtonText();
+    });
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Location Dependent Filter
+    |--------------------------------------------------------------------------
+    */
+
+    const divisionSelect =
+        document.getElementById(
+            'teacher_location_division'
+        );
+
+    const districtSelect =
+        document.getElementById(
+            'teacher_location_district'
+        );
+
+    const cards = Array.from(
+        document.querySelectorAll(
+            '[data-location-card]'
+        )
+    );
+
+    const hint =
+        document.getElementById(
+            'teacher_location_hint'
+        );
+
+    const selectedCount =
+        document.getElementById(
+            'teacher_location_selected_count'
+        );
+
+    const uniqueSorted = (values) =>
+        [...new Set(
+            values.filter(Boolean)
+        )]
+            .sort(
+                (a, b) =>
+                    a.localeCompare(b)
+            );
+
+    const divisions =
+        uniqueSorted(
+            cards.map(
+                (card) =>
+                    card.dataset.division
+            )
+        );
+
+    const setOptions = (
+        select,
+        placeholder,
+        values
+    ) => {
+
+        select.innerHTML = '';
+
+        select.append(
+            new Option(
+                placeholder,
+                ''
+            )
+        );
+
+        values.forEach(
+            (value) => {
+                select.append(
+                    new Option(
+                        value,
+                        value
+                    )
+                );
+            }
+        );
+    };
+
+    setOptions(
+        divisionSelect,
+        'Select Division',
+        divisions
+    );
+
+    const updateSelectedCount = () => {
+
+        const count =
+            cards.filter(
+                (card) => {
+
+                    const checkbox =
+                        card.querySelector(
+                            'input[type="checkbox"]'
+                        );
+
+                    return checkbox?.checked;
+                }
+            ).length;
+
+        selectedCount.textContent =
+            `${count} selected`;
+    };
+
+    const filterCards = () => {
+
+        const division =
+            divisionSelect.value;
+
+        const district =
+            districtSelect.value;
+
+        cards.forEach(
+            (card) => {
+
+                const visible =
+                    division &&
+                    district &&
+                    card.dataset.division ===
+                        division &&
+                    card.dataset.district ===
+                        district;
+
+                card.classList.toggle(
+                    'hidden',
+                    ! visible
+                );
+
+                card.classList.toggle(
+                    'flex',
+                    visible
+                );
+            }
+        );
+
+        if (
+            ! division ||
+            ! district
+        ) {
+
+            hint.textContent =
+                'Select a division and district to view available areas.';
+
+            return;
+        }
+
+        const visibleCount =
+            cards.filter(
+                (card) =>
+                    card.dataset.division ===
+                        division &&
+                    card.dataset.district ===
+                        district
+            ).length;
+
+        hint.textContent =
+            `${visibleCount} location option(s) available in ${district}.`;
+    };
+
+    divisionSelect.addEventListener(
+        'change',
+        () => {
+
+            const division =
+                divisionSelect.value;
+
+            if (! division) {
+
+                setOptions(
+                    districtSelect,
+                    'Select District',
+                    []
+                );
+
+                districtSelect.disabled =
+                    true;
+
+                filterCards();
+
+                return;
+            }
+
+            const districts =
+                uniqueSorted(
+                    cards
+                        .filter(
+                            (card) =>
+                                card.dataset.division ===
+                                division
+                        )
+                        .map(
+                            (card) =>
+                                card.dataset.district
+                        )
+                );
+
+            setOptions(
+                districtSelect,
+                'Select District',
+                districts
+            );
+
+            districtSelect.disabled =
+                false;
+
+            filterCards();
+        }
+    );
+
+    districtSelect.addEventListener(
+        'change',
+        filterCards
+    );
+
+    cards.forEach(
+        (card) => {
+
+            const checkbox =
+                card.querySelector(
+                    'input[type="checkbox"]'
+                );
+
+            checkbox?.addEventListener(
+                'change',
+                updateSelectedCount
+            );
+        }
+    );
+
+    const firstSelectedCard =
+        cards.find(
+            (card) => {
+
+                const checkbox =
+                    card.querySelector(
+                        'input[type="checkbox"]'
+                    );
+
+                return checkbox?.checked;
+            }
+        );
+
+    if (firstSelectedCard) {
+
+        divisionSelect.value =
+            firstSelectedCard
+                .dataset
+                .division;
+
+        divisionSelect.dispatchEvent(
+            new Event('change')
+        );
+
+        districtSelect.value =
+            firstSelectedCard
+                .dataset
+                .district;
+
+        filterCards();
+    }
+
+    updateSelectedCount();
+});
+</script>
+
+@endsection
+@extends('layouts.app')
+
+@section('title', 'Teacher Verification - Tuition Hub Admin')
+
+@php
+    $pageTitle = 'Teacher Verification';
+    $pageSubtitle = 'Admin Panel';
+@endphp
+
+@section('content')
+
+    <div>
+
+        <h2 class="text-2xl font-black text-slate-900">
+            Teacher Verification
+        </h2>
+
+        <p class="mt-1 text-sm text-slate-500">
+            Review and verify teacher profiles.
+        </p>
+
+    </div>
+
+    <form
+        method="GET"
+        action="{{ route('admin.teachers.index') }}"
+        class="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+    >
+
+        <div class="grid gap-4 md:grid-cols-3">
+
+            <input
+                type="text"
+                name="search"
+                value="{{ request('search') }}"
+                placeholder="Search name, email or phone..."
+                class="rounded-xl border border-slate-300 px-4 py-3 text-sm focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
+            >
+
+            <select
+                name="status"
+                class="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
+            >
+                <option value="">
+                    All Verification Status
+                </option>
+
+                <option
+                    value="pending"
+                    @selected(request('status') === 'pending')
+                >
+                    Pending
+                </option>
+
+                <option
+                    value="verified"
+                    @selected(request('status') === 'verified')
+                >
+                    Verified
+                </option>
+            </select>
+
+            <div class="flex gap-2">
+
+                <button
+                    type="submit"
+                    class="rounded-xl bg-indigo-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-indigo-700"
+                >
+                    Filter
+                </button>
+
+                @if(
+                    request()->filled('search') ||
+                    request()->filled('status')
+                )
+
+                    <a
+                        href="{{ route('admin.teachers.index') }}"
+                        class="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-600"
+                    >
+                        Clear
+                    </a>
+
+                @endif
+
+            </div>
+
+        </div>
+
+    </form>
+
+    <div class="mt-6 space-y-5">
+
+        @forelse($teachers as $teacher)
+
+            <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+
+                <div class="flex flex-col gap-6 lg:flex-row lg:justify-between">
+
+                    <div class="min-w-0 flex-1">
+
+                        <div class="flex flex-wrap items-center gap-2">
+
+                            <h3 class="text-xl font-bold text-slate-900">
+                                {{ $teacher->user?->name ?? 'Teacher' }}
+                            </h3>
+
+                            @if($teacher->is_verified)
+
+                                <span class="rounded-full bg-emerald-50 px-3 py-1 text-[10px] font-bold text-emerald-700">
+                                    VERIFIED
+                                </span>
+
+                            @else
+
+                                <span class="rounded-full bg-amber-50 px-3 py-1 text-[10px] font-bold text-amber-700">
+                                    PENDING
+                                </span>
+
+                            @endif
+
+                        </div>
+
+                        <div class="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+
+                            <div>
+
+                                <p class="text-xs text-slate-400">
+                                    Email
+                                </p>
+
+                                <p class="mt-1 break-all text-sm font-semibold text-slate-800">
+                                    {{ $teacher->user?->email ?? 'N/A' }}
+                                </p>
+
+                            </div>
+
+                            <div>
+
+                                <p class="text-xs text-slate-400">
+                                    Phone
+                                </p>
+
+                                <p class="mt-1 text-sm font-semibold text-slate-800">
+                                    {{ $teacher->user?->phone ?? 'N/A' }}
+                                </p>
+
+                            </div>
+
+                            <div>
+
+                                <p class="text-xs text-slate-400">
+                                    Gender
+                                </p>
+
+                                <p class="mt-1 text-sm font-semibold text-slate-800">
+                                    {{
+                                        $teacher->gender
+                                            ? ucfirst($teacher->gender)
+                                            : 'Not specified'
+                                    }}
+                                </p>
+
+                            </div>
+
+                            <div>
+
+                                <p class="text-xs text-slate-400">
+                                    University
+                                </p>
+
+                                <p class="mt-1 text-sm font-semibold text-slate-800">
+                                    {{ $teacher->university ?? 'Not specified' }}
+                                </p>
+
+                            </div>
+
+                            <div>
+
+                                <p class="text-xs text-slate-400">
+                                    Department
+                                </p>
+
+                                <p class="mt-1 text-sm font-semibold text-slate-800">
+                                    {{ $teacher->department ?? 'Not specified' }}
+                                </p>
+
+                            </div>
+
+                            <div>
+
+                                <p class="text-xs text-slate-400">
+                                    Experience
+                                </p>
+
+                                <p class="mt-1 text-sm font-semibold text-slate-800">
+                                    {{ $teacher->experience_years }} year(s)
+                                </p>
+
+                            </div>
+
+                        </div>
+
+                        <div class="mt-5">
+
+                            <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                                Subjects
+                            </p>
+
+                            <div class="mt-2 flex flex-wrap gap-2">
+
+                                @forelse($teacher->subjects as $subject)
+
+                                    <span class="rounded-lg bg-indigo-50 px-3 py-1 text-sm text-indigo-700">
+                                        {{ $subject->name }}
+                                    </span>
+
+                                @empty
+
+                                    <span class="text-sm text-slate-500">
+                                        No subjects added.
+                                    </span>
+
+                                @endforelse
+
+                            </div>
+
+                        </div>
+
+                        <div class="mt-5">
+
+                            <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                                Preferred Areas
+                            </p>
+
+                            <div class="mt-2 flex flex-wrap gap-2">
+
+                                @forelse($teacher->locations as $location)
+
+                                    <span class="rounded-lg bg-slate-100 px-3 py-1 text-sm text-slate-700">
+                                        {{ $location->area }}
+                                    </span>
+
+                                @empty
+
+                                    <span class="text-sm text-slate-500">
+                                        No areas added.
+                                    </span>
+
+                                @endforelse
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <div class="lg:w-52">
+
+                        @if($teacher->is_verified)
+
+                            <form
+                                method="POST"
+                                action="{{ route(
+                                    'admin.teachers.unverify',
+                                    $teacher
+                                ) }}"
+                            >
+                                @csrf
+                                @method('PATCH')
+
+                                <button
+                                    type="submit"
+                                    onclick="return confirm('Remove verification from this teacher?')"
+                                    class="w-full rounded-xl border border-rose-200 bg-white px-4 py-3 text-sm font-semibold text-rose-600 transition hover:bg-rose-50"
+                                >
+                                    Remove Verification
+                                </button>
+
+                            </form>
+
+                        @else
+
+                            <form
+                                method="POST"
+                                action="{{ route(
+                                    'admin.teachers.verify',
+                                    $teacher
+                                ) }}"
+                            >
+                                @csrf
+                                @method('PATCH')
+
+                                <button
+                                    type="submit"
+                                    onclick="return confirm('Verify this teacher?')"
+                                    class="w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-emerald-700"
+                                >
+                                    Verify Teacher
+                                </button>
+
+                            </form>
+
+                        @endif
+
+                        @if(Route::has('admin.verification-documents.index'))
+
+                            <a
+                                href="{{ route(
+                                    'admin.verification-documents.index',
+                                    [
+                                        'search' => $teacher->user?->email,
+                                    ]
+                                ) }}"
+                                class="mt-3 block rounded-xl bg-indigo-50 px-4 py-3 text-center text-sm font-semibold text-indigo-700"
+                            >
+                                View Documents
+                            </a>
+
+                        @endif
+
+                    </div>
+
+                </div>
+
+            </article>
+
+        @empty
+
+            <div class="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-14 text-center text-sm text-slate-500">
+                No teachers found.
+            </div>
+
+        @endforelse
+
+    </div>
+
+    @if($teachers->hasPages())
+
+        <div class="mt-8">
+            {{ $teachers->links() }}
+        </div>
+
+    @endif
+
+@endsection

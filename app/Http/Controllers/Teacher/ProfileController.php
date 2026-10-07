@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\Location;
 use App\Models\Subject;
 use App\Models\TeacherProfile;
+use App\Models\TeacherProfileEditRequest;
 use App\Services\AdminNotificationService;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -15,23 +17,43 @@ use Illuminate\View\View;
 
 class ProfileController extends Controller
 {
-    /**
-     * Show teacher profile edit page.
-     */
     public function edit(): View
     {
         $user = auth()->user();
 
-        $profile = TeacherProfile::firstOrCreate(
-            [
-                'user_id' => $user->id,
-            ],
-            [
-                'experience_years' => 0,
-                'teaching_mode' => 'offline',
-                'is_verified' => false,
-                'is_available' => true,
-            ]
+        $profile = $this->profileFor(
+            $user->id
+        );
+
+        $profile->load([
+            'subjects',
+            'locations',
+            'pendingProfileEditRequest',
+        ]);
+
+        $recentEditRequests =
+            $profile
+                ->profileEditRequests()
+                ->latest()
+                ->limit(5)
+                ->get();
+
+        return view(
+            'teacher.profile.edit',
+            compact(
+                'user',
+                'profile',
+                'recentEditRequests'
+            )
+        );
+    }
+
+    public function requestEdit(): View|RedirectResponse
+    {
+        $user = auth()->user();
+
+        $profile = $this->profileFor(
+            $user->id
         );
 
         $profile->load([
@@ -39,19 +61,48 @@ class ProfileController extends Controller
             'locations',
         ]);
 
+        $pendingRequest =
+            $profile
+                ->profileEditRequests()
+                ->where(
+                    'status',
+                    TeacherProfileEditRequest::STATUS_PENDING
+                )
+                ->latest()
+                ->first();
+
+        if ($pendingRequest) {
+            return redirect()
+                ->route(
+                    'teacher.profile.edit'
+                )
+                ->with(
+                    'error',
+                    'You already have a pending profile edit request. Please wait for admin review.'
+                );
+        }
+
         $subjects = Subject::query()
-            ->where('status', true)
+            ->where(
+                'status',
+                true
+            )
+            ->orderBy('category')
             ->orderBy('name')
             ->get();
 
         $locations = Location::query()
-            ->where('status', true)
+            ->where(
+                'status',
+                true
+            )
+            ->orderBy('division')
             ->orderBy('district')
             ->orderBy('area')
             ->get();
 
         return view(
-            'teacher.profile.edit',
+            'teacher.profile.request-edit',
             compact(
                 'user',
                 'profile',
@@ -61,323 +112,389 @@ class ProfileController extends Controller
         );
     }
 
-    /**
-     * Update teacher profile.
-     */
-    public function update(
+    public function storeEditRequest(
         Request $request
     ): RedirectResponse {
-        $user = auth()->user();
+        $user = $request->user();
 
-        $profile = TeacherProfile::firstOrCreate(
-            [
-                'user_id' => $user->id,
-            ],
-            [
-                'experience_years' => 0,
-                'teaching_mode' => 'offline',
-                'is_verified' => false,
-                'is_available' => true,
-            ]
+        $profile = $this->profileFor(
+            $user->id
         );
 
-        $validated = $request->validate([
-            'profile_photo' => [
-                'nullable',
-                'image',
-                'mimes:jpg,jpeg,png,webp',
-                'max:2048',
-            ],
+        $validated =
+            $request->validate([
+                'profile_photo' => [
+                    'nullable',
+                    'image',
+                    'mimes:jpg,jpeg,png,webp',
+                    'max:2048',
+                ],
 
-            'gender' => [
-                'required',
-                'in:male,female,other',
-            ],
+                'gender' => [
+                    'required',
+                    'in:male,female,other',
+                ],
 
-            'university' => [
-                'required',
-                'string',
-                'max:255',
-            ],
+                'university' => [
+                    'required',
+                    'string',
+                    'max:255',
+                ],
 
-            'department' => [
-                'required',
-                'string',
-                'max:255',
-            ],
+                'department' => [
+                    'required',
+                    'string',
+                    'max:255',
+                ],
 
-            'degree' => [
-                'nullable',
-                'string',
-                'max:255',
-            ],
+                'degree' => [
+                    'nullable',
+                    'string',
+                    'max:255',
+                ],
 
-            'experience_years' => [
-                'required',
-                'integer',
-                'min:0',
-                'max:60',
-            ],
+                'experience_years' => [
+                    'required',
+                    'integer',
+                    'min:0',
+                    'max:60',
+                ],
 
-            'bio' => [
-                'nullable',
-                'string',
-                'max:3000',
-            ],
+                'bio' => [
+                    'nullable',
+                    'string',
+                    'max:3000',
+                ],
 
-            'expected_salary_min' => [
-                'nullable',
-                'numeric',
-                'min:0',
-                'max:9999999',
-            ],
+                'expected_salary_min' => [
+                    'nullable',
+                    'numeric',
+                    'min:0',
+                    'max:9999999',
+                ],
 
-            'expected_salary_max' => [
-                'nullable',
-                'numeric',
-                'min:0',
-                'max:9999999',
-                'gte:expected_salary_min',
-            ],
+                'expected_salary_max' => [
+                    'nullable',
+                    'numeric',
+                    'min:0',
+                    'max:9999999',
+                    'gte:expected_salary_min',
+                ],
 
-            'teaching_mode' => [
-                'required',
-                'in:offline,online,both',
-            ],
+                'teaching_mode' => [
+                    'required',
+                    'in:offline,online,both',
+                ],
 
-            'subjects' => [
-                'required',
-                'array',
-                'min:1',
-            ],
+                'subjects' => [
+                    'required',
+                    'array',
+                    'min:1',
+                ],
 
-            'subjects.*' => [
-                'integer',
-                'exists:subjects,id',
-            ],
+                'subjects.*' => [
+                    'integer',
+                    'exists:subjects,id',
+                ],
 
-            'locations' => [
-                'nullable',
-                'array',
-            ],
+                'locations' => [
+                    'nullable',
+                    'array',
+                ],
 
-            'locations.*' => [
-                'integer',
-                'exists:locations,id',
-            ],
-        ]);
+                'locations.*' => [
+                    'integer',
+                    'exists:locations,id',
+                ],
+            ]);
 
-        /*
-        |--------------------------------------------------------------------------
-        | Detect Verification Sensitive Changes
-        |--------------------------------------------------------------------------
-        */
+        if (
+            in_array(
+                $validated['teaching_mode'],
+                [
+                    'offline',
+                    'both',
+                ],
+                true
+            )
+            &&
+            empty(
+                $validated['locations'] ?? []
+            )
+        ) {
+            return back()
+                ->withInput()
+                ->with(
+                    'error',
+                    'Please select at least one teaching location for offline or both teaching mode.'
+                );
+        }
 
-        $oldSubjectIds = $profile
-            ->subjects()
-            ->pluck('subjects.id')
-            ->sort()
-            ->values()
-            ->all();
-
-        $oldLocationIds = $profile
-            ->locations()
-            ->pluck('locations.id')
-            ->sort()
-            ->values()
-            ->all();
-
-        $newSubjectIds = collect(
-            $validated['subjects']
-        )
-            ->map(fn ($id) => (int) $id)
-            ->sort()
-            ->values()
-            ->all();
-
-        $newLocationIds = collect(
-            $validated['locations'] ?? []
-        )
-            ->map(fn ($id) => (int) $id)
-            ->sort()
-            ->values()
-            ->all();
-
-        $sensitiveChanged =
-            $profile->gender !== $validated['gender']
-            || $profile->university !== $validated['university']
-            || $profile->department !== $validated['department']
-            || $profile->degree !== ($validated['degree'] ?? null)
-            || (int) $profile->experience_years !== (int) $validated['experience_years']
-            || $profile->teaching_mode !== $validated['teaching_mode']
-            || $oldSubjectIds !== $newSubjectIds
-            || $oldLocationIds !== $newLocationIds
-            || $request->hasFile('profile_photo');
-
-        $wasVerified = (bool) $profile->is_verified;
-
-        $oldPhoto = $profile->profile_photo;
+        $isAvailable =
+            $request->boolean(
+                'is_available'
+            );
 
         $newPhotoPath = null;
 
-        if ($request->hasFile('profile_photo')) {
-            $newPhotoPath = $request
-                ->file('profile_photo')
-                ->store(
-                    'teacher-profiles',
-                    'public'
-                );
+        if (
+            $request->hasFile(
+                'profile_photo'
+            )
+        ) {
+            $newPhotoPath =
+                $request
+                    ->file(
+                        'profile_photo'
+                    )
+                    ->store(
+                        'teacher-profile-edit-requests',
+                        'public'
+                    );
         }
 
-        DB::transaction(
-            function () use (
-                $request,
-                $profile,
-                $validated,
-                $newPhotoPath,
-                $sensitiveChanged,
-                $wasVerified
-            ) {
-                $profile->update([
-                    'profile_photo' =>
+        try {
+            $editRequest =
+                DB::transaction(
+                    function () use (
+                        $profile,
+                        $user,
+                        $validated,
+                        $isAvailable,
                         $newPhotoPath
-                            ?: $profile->profile_photo,
+                    ) {
+                        $lockedProfile =
+                            TeacherProfile::query()
+                                ->lockForUpdate()
+                                ->findOrFail(
+                                    $profile->id
+                                );
 
-                    'gender' =>
-                        $validated['gender'],
+                        $hasPending =
+                            TeacherProfileEditRequest::query()
+                                ->where(
+                                    'teacher_profile_id',
+                                    $lockedProfile->id
+                                )
+                                ->where(
+                                    'status',
+                                    TeacherProfileEditRequest::STATUS_PENDING
+                                )
+                                ->lockForUpdate()
+                                ->exists();
 
-                    'university' =>
-                        $validated['university'],
+                        if ($hasPending) {
+                            return null;
+                        }
 
-                    'department' =>
-                        $validated['department'],
+                        $subjectIds =
+                            collect(
+                                $validated['subjects']
+                            )
+                                ->map(
+                                    fn ($id) =>
+                                        (int) $id
+                                )
+                                ->unique()
+                                ->values()
+                                ->all();
 
-                    'degree' =>
-                        $validated['degree'] ?? null,
+                        $locationIds =
+                            collect(
+                                $validated['locations']
+                                    ?? []
+                            )
+                                ->map(
+                                    fn ($id) =>
+                                        (int) $id
+                                )
+                                ->unique()
+                                ->values()
+                                ->all();
 
-                    'experience_years' =>
-                        $validated['experience_years'],
+                        return TeacherProfileEditRequest::create([
+                            'teacher_profile_id' =>
+                                $lockedProfile->id,
 
-                    'bio' =>
-                        $validated['bio'] ?? null,
+                            'requested_by_user_id' =>
+                                $user->id,
 
-                    'expected_salary_min' =>
-                        $validated['expected_salary_min'] ?? null,
+                            'requested_data' => [
+                                'gender' =>
+                                    $validated['gender'],
 
-                    'expected_salary_max' =>
-                        $validated['expected_salary_max'] ?? null,
+                                'university' =>
+                                    $validated['university'],
 
-                    'teaching_mode' =>
-                        $validated['teaching_mode'],
+                                'department' =>
+                                    $validated['department'],
 
-                    'is_available' =>
-                        $request->boolean(
-                            'is_available'
-                        ),
+                                'degree' =>
+                                    $validated['degree']
+                                    ?? null,
 
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Verified Profile Changed → Review Again
-                    |--------------------------------------------------------------------------
-                    */
+                                'experience_years' =>
+                                    (int) $validated[
+                                        'experience_years'
+                                    ],
 
-                    'is_verified' =>
-                        (
-                            $wasVerified &&
-                            $sensitiveChanged
-                        )
-                            ? false
-                            : $profile->is_verified,
-                ]);
+                                'bio' =>
+                                    $validated['bio']
+                                    ?? null,
 
-                $profile
-                    ->subjects()
-                    ->sync(
-                        $validated['subjects']
-                    );
+                                'expected_salary_min' =>
+                                    $validated[
+                                        'expected_salary_min'
+                                    ] ?? null,
 
-                $profile
-                    ->locations()
-                    ->sync(
-                        $validated['locations'] ?? []
+                                'expected_salary_max' =>
+                                    $validated[
+                                        'expected_salary_max'
+                                    ] ?? null,
+
+                                'teaching_mode' =>
+                                    $validated[
+                                        'teaching_mode'
+                                    ],
+
+                                'is_available' =>
+                                    $isAvailable,
+
+                                'subject_ids' =>
+                                    $subjectIds,
+
+                                'location_ids' =>
+                                    $locationIds,
+                            ],
+
+                            'profile_photo_path' =>
+                                $newPhotoPath,
+
+                            'status' =>
+                                TeacherProfileEditRequest::STATUS_PENDING,
+
+                            'active_key' =>
+                                'teacher_profile_'
+                                .$lockedProfile->id,
+                        ]);
+                    }
+                );
+        } catch (QueryException $exception) {
+            if ($newPhotoPath) {
+                Storage::disk(
+                    'public'
+                )->delete(
+                    $newPhotoPath
+                );
+            }
+
+            $sqlState =
+                $exception
+                    ->errorInfo[0]
+                    ?? null;
+
+            $driverCode =
+                (int) (
+                    $exception
+                        ->errorInfo[1]
+                    ?? 0
+                );
+
+            $isDuplicate =
+                $sqlState === '23000'
+                ||
+                $sqlState === '23505'
+                ||
+                $driverCode === 1062
+                ||
+                str_contains(
+                    strtolower(
+                        $exception->getMessage()
+                    ),
+                    'unique'
+                );
+
+            if ($isDuplicate) {
+                return redirect()
+                    ->route(
+                        'teacher.profile.edit'
+                    )
+                    ->with(
+                        'error',
+                        'You already have a pending profile edit request.'
                     );
             }
-        );
 
-        /*
-        |--------------------------------------------------------------------------
-        | Delete Previous Photo After Successful Save
-        |--------------------------------------------------------------------------
-        */
-
-        if (
-            $newPhotoPath &&
-            $oldPhoto &&
-            $oldPhoto !== $newPhotoPath
-        ) {
-            Storage::disk('public')
-                ->delete($oldPhoto);
+            throw $exception;
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | Admin Re-verification Notification
-        |--------------------------------------------------------------------------
-        */
-
-        if (
-            $wasVerified &&
-            $sensitiveChanged
-        ) {
-            AdminNotificationService::send(
-                'Teacher Profile Requires Re-verification',
-                $user->name
-                    .' updated verified profile information. The profile now requires review again.',
-                route(
-                    'admin.teachers.index',
-                    [
-                        'status' => 'pending',
-                        'search' => $user->email,
-                    ]
-                ),
-                'teacher_verification'
-            );
+        if (! $editRequest) {
+            if ($newPhotoPath) {
+                Storage::disk(
+                    'public'
+                )->delete(
+                    $newPhotoPath
+                );
+            }
 
             return redirect()
-                ->route('teacher.profile.edit')
+                ->route(
+                    'teacher.profile.edit'
+                )
                 ->with(
-                    'success',
-                    'Profile updated successfully. Because verified information was changed, your profile has been sent for admin re-verification.'
+                    'error',
+                    'You already have a pending profile edit request.'
                 );
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | Notify Admin For First Profile Completion / Update
-        |--------------------------------------------------------------------------
-        */
+        AdminNotificationService::send(
+            'Teacher Profile Edit Request',
+            $user->name
+                .' submitted a profile edit request for admin review.',
+            route(
+                'admin.teacher-profile-edit-requests.index',
+                [
+                    'status' =>
+                        'pending',
 
-        if (! $profile->is_verified) {
-            AdminNotificationService::send(
-                'Teacher Profile Ready for Review',
-                $user->name
-                    .' updated the teacher profile and is waiting for verification.',
-                route(
-                    'admin.teachers.index',
-                    [
-                        'status' => 'pending',
-                        'search' => $user->email,
-                    ]
-                ),
-                'teacher_verification'
-            );
-        }
+                    'search' =>
+                        $user->email,
+                ]
+            ),
+            'teacher_profile_edit_request'
+        );
 
         return redirect()
-            ->route('teacher.profile.edit')
+            ->route(
+                'teacher.profile.edit'
+            )
             ->with(
                 'success',
-                'Profile updated successfully.'
+                'Your profile edit request was submitted successfully. Your current profile will remain unchanged until an admin approves the request.'
             );
+    }
+
+    private function profileFor(
+        int $userId
+    ): TeacherProfile {
+        return TeacherProfile::firstOrCreate(
+            [
+                'user_id' =>
+                    $userId,
+            ],
+            [
+                'experience_years' =>
+                    0,
+
+                'teaching_mode' =>
+                    'offline',
+
+                'is_verified' =>
+                    false,
+
+                'is_available' =>
+                    true,
+            ]
+        );
     }
 }

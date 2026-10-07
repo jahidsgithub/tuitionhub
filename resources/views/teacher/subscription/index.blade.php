@@ -4,111 +4,261 @@
 
 @php
     $pageTitle = 'Subscription';
-    $pageSubtitle = 'Teacher Account';
-
-    $activePlanName =
-        $activeSubscription?->plan_name_snapshot
-        ?: $activeSubscription?->plan?->name
-        ?: 'Active Plan';
-
-    $activeApplicationLimit = $activeSubscription
-        ? (
-            $activeSubscription->plan_snapshot_captured_at
-                ? $activeSubscription->application_limit_snapshot
-                : $activeSubscription->plan?->application_limit
-        )
-        : null;
+    $pageSubtitle = 'Teacher Subscription';
 @endphp
 
 @section('content')
 
+<style>
+    .th-plan-card {
+        transition:
+            transform .25s ease,
+            box-shadow .25s ease,
+            border-color .25s ease;
+    }
+
+    .th-plan-card:hover {
+        transform: translateY(-6px);
+    }
+
+    .th-upgrade-button {
+        display: flex !important;
+        width: 100% !important;
+        min-height: 50px !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 8px !important;
+        border: 0 !important;
+        border-radius: 14px !important;
+        background: linear-gradient(
+            135deg,
+            #4f46e5 0%,
+            #7c3aed 100%
+        ) !important;
+        color: #ffffff !important;
+        font-size: 14px !important;
+        font-weight: 800 !important;
+        line-height: 1.2 !important;
+        cursor: pointer !important;
+        box-shadow:
+            0 10px 25px rgba(79, 70, 229, .22) !important;
+        transition:
+            transform .2s ease,
+            box-shadow .2s ease,
+            opacity .2s ease !important;
+    }
+
+    .th-upgrade-button:hover {
+        transform: translateY(-2px) !important;
+        box-shadow:
+            0 14px 30px rgba(79, 70, 229, .30) !important;
+    }
+
+    .th-upgrade-button:disabled {
+        cursor: not-allowed !important;
+        opacity: .55 !important;
+        transform: none !important;
+    }
+
+    .th-renew-button {
+        display: flex !important;
+        width: 100% !important;
+        min-height: 50px !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 8px !important;
+        border: 0 !important;
+        border-radius: 14px !important;
+        background: #059669 !important;
+        color: #ffffff !important;
+        font-size: 14px !important;
+        font-weight: 800 !important;
+        cursor: pointer !important;
+        transition:
+            transform .2s ease,
+            background .2s ease !important;
+    }
+
+    .th-renew-button:hover {
+        background: #047857 !important;
+        transform: translateY(-2px) !important;
+    }
+
+    .th-normal-button {
+        display: flex !important;
+        width: 100% !important;
+        min-height: 50px !important;
+        align-items: center !important;
+        justify-content: center !important;
+        border: 0 !important;
+        border-radius: 14px !important;
+        background: #4f46e5 !important;
+        color: #ffffff !important;
+        font-size: 14px !important;
+        font-weight: 800 !important;
+        cursor: pointer !important;
+    }
+</style>
+
+
+<div class="mx-auto max-w-7xl">
+
+    {{-- =========================================================
+         HEADER
+    ========================================================== --}}
     <div>
 
-        <h2 class="text-2xl font-black text-slate-900">
-            Subscription
+        <div class="inline-flex items-center gap-2 rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-indigo-700">
+            Subscription Plans
+        </div>
+
+        <h2 class="mt-3 text-3xl font-black tracking-tight text-slate-900">
+            Grow Your Tuition Opportunities
         </h2>
 
-        <p class="mt-1 text-sm text-slate-500">
-            Choose, renew or upgrade your tuition application plan.
+        <p class="mt-3 max-w-2xl text-sm leading-6 text-slate-500">
+            Choose the plan that fits your teaching goals.
+            Renew your current subscription or upgrade to a higher plan.
         </p>
 
     </div>
 
+
+    {{-- =========================================================
+         SUCCESS
+    ========================================================== --}}
+    @if(session('success'))
+
+        <div class="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+
+            <p class="font-bold text-emerald-800">
+                Success
+            </p>
+
+            <p class="mt-1 text-sm text-emerald-700">
+                {{ session('success') }}
+            </p>
+
+        </div>
+
+    @endif
+
+
+    {{-- =========================================================
+         ERROR
+    ========================================================== --}}
+    @if(session('error'))
+
+        <div class="mt-6 rounded-2xl border border-rose-200 bg-rose-50 p-4">
+
+            <p class="font-bold text-rose-800">
+                Something went wrong
+            </p>
+
+            <p class="mt-1 text-sm text-rose-700">
+                {{ session('error') }}
+            </p>
+
+        </div>
+
+    @endif
+
+
+    {{-- =========================================================
+         ACTIVE SUBSCRIPTION
+    ========================================================== --}}
     @if($activeSubscription)
 
-        <section class="mt-6 rounded-3xl bg-gradient-to-br from-indigo-700 via-indigo-600 to-violet-600 p-6 text-white shadow-lg sm:p-8">
+        <section class="relative mt-8 overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-700 via-indigo-600 to-violet-600 p-6 text-white shadow-xl shadow-indigo-100 sm:p-8">
 
-            <div class="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+            <div class="absolute -right-20 -top-20 h-56 w-56 rounded-full bg-white/10"></div>
 
-                <div>
+            <div class="relative">
 
-                    <p class="text-sm font-medium text-indigo-100">
-                        Current Active Plan
-                    </p>
-
-                    <h3 class="mt-2 text-3xl font-black">
-                        {{ $activePlanName }}
-                    </h3>
-
-                </div>
-
-                <div class="grid gap-5 sm:grid-cols-3">
+                <div class="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
 
                     <div>
 
-                        <p class="text-sm text-indigo-200">
-                            Applications
-                        </p>
+                        <span class="inline-flex rounded-full bg-white/15 px-3 py-1.5 text-xs font-bold uppercase tracking-wide">
+                            Current Active Plan
+                        </span>
 
-                        <p class="mt-1 font-bold">
+                        <h2 class="mt-4 text-3xl font-black">
+                            {{ $activeSubscription->plan?->name ?? 'Active Plan' }}
+                        </h2>
 
-                            @if($activeApplicationLimit === null)
-
-                                Unlimited
-
-                            @else
-
-                                {{ $activeSubscription->applications_used }}
-                                /
-                                {{ $activeApplicationLimit }}
-
-                            @endif
-
+                        <p class="mt-2 text-sm text-indigo-100">
+                            Your subscription is active and ready for tuition applications.
                         </p>
 
                     </div>
 
-                    <div>
 
-                        <p class="text-sm text-indigo-200">
-                            Started
-                        </p>
+                    <div class="grid gap-3 sm:grid-cols-3">
 
-                        <p class="mt-1 font-bold">
-                            {{
-                                $activeSubscription
-                                    ->starts_at
-                                    ?->format('d M Y')
-                                ?? 'N/A'
-                            }}
-                        </p>
+                        <div class="rounded-2xl bg-white/10 p-4">
 
-                    </div>
+                            <p class="text-xs uppercase tracking-wide text-indigo-100">
+                                Applications
+                            </p>
 
-                    <div>
+                            <p class="mt-2 font-black">
 
-                        <p class="text-sm text-indigo-200">
-                            Expires
-                        </p>
+                                @if(
+                                    $activeSubscription
+                                        ->plan
+                                        ?->application_limit === null
+                                )
 
-                        <p class="mt-1 font-bold">
-                            {{
-                                $activeSubscription
-                                    ->expires_at
-                                    ?->format('d M Y')
-                                ?? 'No expiry'
-                            }}
-                        </p>
+                                    Unlimited
+
+                                @else
+
+                                    {{ $activeSubscription->applications_used }}
+                                    /
+                                    {{ $activeSubscription->plan->application_limit }}
+
+                                @endif
+
+                            </p>
+
+                        </div>
+
+
+                        <div class="rounded-2xl bg-white/10 p-4">
+
+                            <p class="text-xs uppercase tracking-wide text-indigo-100">
+                                Started
+                            </p>
+
+                            <p class="mt-2 font-black">
+                                {{
+                                    $activeSubscription
+                                        ->starts_at
+                                        ?->format('d M Y')
+                                    ?? 'N/A'
+                                }}
+                            </p>
+
+                        </div>
+
+
+                        <div class="rounded-2xl bg-white/10 p-4">
+
+                            <p class="text-xs uppercase tracking-wide text-indigo-100">
+                                Expires
+                            </p>
+
+                            <p class="mt-2 font-black">
+                                {{
+                                    $activeSubscription
+                                        ->expires_at
+                                        ?->format('d M Y')
+                                    ?? 'No expiry'
+                                }}
+                            </p>
+
+                        </div>
 
                     </div>
 
@@ -116,61 +266,63 @@
 
             </div>
 
-            <p class="mt-6 text-sm leading-6 text-indigo-100">
-                You may renew the same plan now. Remaining subscription time
-                will be preserved. Eligible higher-priced plans can also be
-                selected as upgrades.
-            </p>
-
         </section>
 
     @else
 
-        <section class="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+        <section class="mt-8 rounded-3xl border border-amber-200 bg-amber-50 p-6">
 
-            <h3 class="font-bold text-amber-900">
+            <h3 class="font-black text-amber-900">
                 No active subscription
             </h3>
 
             <p class="mt-1 text-sm text-amber-700">
-                Select a plan below to start applying for tuition opportunities.
+                Choose a plan below to start applying for tuition opportunities.
             </p>
 
         </section>
 
     @endif
 
+
+    {{-- =========================================================
+         PENDING SUBSCRIPTION
+    ========================================================== --}}
     @if($pendingSubscription)
 
-        <section class="mt-5 rounded-2xl border border-orange-200 bg-orange-50 p-5">
+        <section class="mt-6 rounded-3xl border border-orange-200 bg-white p-5 shadow-sm">
 
             <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 
                 <div>
 
-                    <p class="text-sm text-orange-700">
+                    <p class="text-xs font-black uppercase tracking-wider text-orange-500">
                         Pending Subscription
                     </p>
 
-                    <h3 class="mt-1 font-bold text-orange-900">
-                        {{
-                            $pendingSubscription->plan_name_snapshot
-                            ?: $pendingSubscription->plan?->name
-                            ?: 'Subscription'
-                        }}
+                    <h3 class="mt-1 text-xl font-black text-slate-900">
+                        {{ $pendingSubscription->plan?->name }}
                     </h3>
 
-                    <p class="mt-1 text-sm text-orange-700">
+                    <p class="mt-1 text-sm text-slate-500">
+
                         Amount:
-                        <strong>
-                            ৳{{ number_format(
-                                (float) $pendingSubscription->amount,
-                                2
-                            ) }}
+
+                        <strong class="text-orange-600">
+
+                            ৳{{
+                                number_format(
+                                    (float) $pendingSubscription->amount,
+                                    2
+                                )
+                            }}
+
                         </strong>
+
                     </p>
 
                 </div>
+
 
                 @if((float) $pendingSubscription->amount > 0)
 
@@ -179,7 +331,7 @@
                             'teacher.payment.create',
                             $pendingSubscription
                         ) }}"
-                        class="inline-flex justify-center rounded-xl bg-orange-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-orange-700"
+                        class="rounded-xl bg-orange-600 px-5 py-3 text-center text-sm font-bold text-white"
                     >
                         Payment Details
                     </a>
@@ -192,79 +344,228 @@
 
     @endif
 
-    <section class="mt-8">
 
-        <div>
+    {{-- =========================================================
+         AVAILABLE PLANS
+    ========================================================== --}}
+    <section class="mt-12">
 
-            <h3 class="text-xl font-black text-slate-900">
-                Available Plans
-            </h3>
+        <p class="text-xs font-black uppercase tracking-[0.2em] text-indigo-600">
+            Pricing
+        </p>
 
-            <p class="mt-1 text-sm text-slate-500">
-                Select the plan that fits your tuition application needs.
-            </p>
+        <h2 class="mt-2 text-2xl font-black text-slate-900 sm:text-3xl">
+            Available Plans
+        </h2>
 
-        </div>
+        <p class="mt-2 text-sm text-slate-500">
+            Choose the subscription level that best matches your tuition application needs.
+        </p>
 
-        <div class="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+
+        <div class="mt-7 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
 
             @foreach($plans as $plan)
 
                 @php
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Current Plan
+                    |--------------------------------------------------------------------------
+                    */
                     $isCurrentPlan =
                         $activeSubscription &&
-                        $activeSubscription->subscription_plan_id === $plan->id;
+                        (int) $activeSubscription->subscription_plan_id ===
+                        (int) $plan->id;
 
-                    $activePlanPrice =
-                        $activeSubscription?->amount
-                        ?? $activeSubscription?->plan?->price
-                        ?? 0;
 
-                    $isUpgrade =
-                        $activeSubscription &&
-                        ! $isCurrentPlan &&
-                        (float) $plan->price >
-                        (float) $activePlanPrice;
-
-                    $isDowngrade =
-                        $activeSubscription &&
-                        ! $isCurrentPlan &&
-                        (float) $plan->price <=
-                        (float) $activePlanPrice;
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Other states
+                    |--------------------------------------------------------------------------
+                    */
+                    $isFree =
+                        (float) $plan->price === 0.0;
 
                     $hasPending =
                         $pendingSubscription !== null;
+
+                    $currentPlan =
+                        $activeSubscription?->plan;
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Upgrade detection
+                    |--------------------------------------------------------------------------
+                    |
+                    | 1. First use sort_order.
+                    | 2. If sort_order is equal, use price.
+                    |
+                    */
+
+                    $isUpgrade = false;
+
+                    $isDowngrade = false;
+
+
+                    if (
+                        $activeSubscription &&
+                        $currentPlan &&
+                        ! $isCurrentPlan
+                    ) {
+
+                        $currentSort =
+                            (int) ($currentPlan->sort_order ?? 0);
+
+                        $targetSort =
+                            (int) ($plan->sort_order ?? 0);
+
+
+                        if ($targetSort > $currentSort) {
+
+                            $isUpgrade = true;
+
+                        } elseif ($targetSort < $currentSort) {
+
+                            $isDowngrade = true;
+
+                        } else {
+
+                            if (
+                                (float) $plan->price >
+                                (float) $currentPlan->price
+                            ) {
+
+                                $isUpgrade = true;
+
+                            } elseif (
+                                (float) $plan->price <
+                                (float) $currentPlan->price
+                            ) {
+
+                                $isDowngrade = true;
+                            }
+                        }
+                    }
                 @endphp
 
-                <article class="relative rounded-2xl border bg-white p-6 shadow-sm {{ $plan->is_featured ? 'border-indigo-400' : 'border-slate-200' }}">
 
-                    @if($plan->is_featured)
+                <article
+                    class="
+                        th-plan-card
+                        relative flex h-full flex-col overflow-hidden rounded-3xl border bg-white p-7
 
-                        <span class="absolute right-4 top-4 rounded-full bg-indigo-50 px-3 py-1 text-[10px] font-bold text-indigo-700">
-                            POPULAR
-                        </span>
+                        @if($plan->is_featured)
+                            border-indigo-400 shadow-xl shadow-indigo-100
 
-                    @endif
+                        @elseif($isCurrentPlan)
+                            border-emerald-300 shadow-lg shadow-emerald-100
 
-                    @if($isCurrentPlan)
+                        @elseif($isUpgrade)
+                            border-violet-300 shadow-lg shadow-violet-100
 
-                        <span class="inline-flex rounded-full bg-emerald-50 px-3 py-1 text-[10px] font-bold text-emerald-700">
-                            CURRENT PLAN
-                        </span>
+                        @else
+                            border-slate-200 shadow-sm
+                        @endif
+                    "
+                >
 
-                    @endif
+                    {{-- =====================================================
+                         BADGES
+                    ====================================================== --}}
+                    <div class="flex min-h-[30px] flex-wrap gap-2">
 
-                    <h4 class="mt-4 text-2xl font-black text-slate-900">
+                        @if($isCurrentPlan)
+
+                            <span class="rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-black uppercase text-emerald-700">
+                                ● Current Plan
+                            </span>
+
+                        @endif
+
+
+                        @if($plan->is_featured)
+
+                            <span class="rounded-full bg-indigo-50 px-3 py-1 text-[11px] font-black uppercase text-indigo-700">
+                                ★ Most Popular
+                            </span>
+
+                        @endif
+
+
+                        @if($isUpgrade)
+
+                            <span class="rounded-full bg-violet-50 px-3 py-1 text-[11px] font-black uppercase text-violet-700">
+                                ↑ Upgrade
+                            </span>
+
+                        @endif
+
+                    </div>
+
+
+                    {{-- =====================================================
+                         ICON
+                    ====================================================== --}}
+                    <div
+                        class="
+                            mt-5 flex h-12 w-12 items-center justify-center rounded-2xl
+
+                            @if($plan->is_featured || $isUpgrade)
+                                bg-gradient-to-br from-violet-300 via-purple-400 to-violet-600 text-white shadow-lg shadow-violet-200
+
+                            @elseif($isCurrentPlan)
+                                bg-emerald-100 text-emerald-700
+
+                            @else
+                                bg-slate-100 text-slate-700
+                            @endif
+                        "
+                    >
+
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            class="h-7 w-7"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                d="M12 3l7 4v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V7l7-4z"
+                            />
+                        </svg>
+
+                    </div>
+
+
+                    {{-- =====================================================
+                         PLAN INFO
+                    ====================================================== --}}
+                    <h3 class="mt-5 text-2xl font-black text-slate-900">
                         {{ $plan->name }}
-                    </h4>
+                    </h3>
 
-                    <p class="mt-2 min-h-[40px] text-sm leading-6 text-slate-500">
-                        {{ $plan->description ?? 'Tuition Hub subscription plan.' }}
+
+                    <p class="mt-2 min-h-[45px] text-sm leading-6 text-slate-500">
+
+                        {{
+                            $plan->description
+                            ?? 'Tuition Hub subscription plan.'
+                        }}
+
                     </p>
 
+
+                    {{-- =====================================================
+                         PRICE
+                    ====================================================== --}}
                     <div class="mt-6">
 
-                        @if((float) $plan->price === 0.0)
+                        @if($isFree)
 
                             <span class="text-4xl font-black text-slate-900">
                                 Free
@@ -272,69 +573,295 @@
 
                         @else
 
-                            <span class="text-4xl font-black text-slate-900">
-                                ৳{{ number_format(
-                                    (float) $plan->price
-                                ) }}
-                            </span>
+                            <div class="flex items-end gap-2">
+
+                                <span class="pb-1 text-lg font-bold text-slate-400">
+                                    ৳
+                                </span>
+
+                                <span
+                                    class="
+                                        text-4xl font-black
+
+                                        @if($isUpgrade || $plan->is_featured)
+                                            text-indigo-700
+                                        @else
+                                            text-slate-900
+                                        @endif
+                                    "
+                                >
+                                    {{
+                                        number_format(
+                                            (float) $plan->price
+                                        )
+                                    }}
+                                </span>
+
+                            </div>
 
                         @endif
 
                     </div>
 
-                    <div class="mt-6 space-y-3 text-sm">
 
-                        <div class="flex items-center justify-between">
+                    <div class="my-6 border-t border-slate-100"></div>
 
-                            <span class="text-slate-500">
-                                Duration
-                            </span>
 
-                            <strong class="text-slate-800">
-                                {{ $plan->duration_days }} days
-                            </strong>
+                    {{-- =====================================================
+                         FEATURES
+                    ====================================================== --}}
+                    <div class="space-y-4">
+
+                        {{-- Duration --}}
+                        <div class="flex items-center gap-3">
+
+                            <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
+
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    class="h-5 w-5"
+                                >
+                                    <rect
+                                        x="3"
+                                        y="5"
+                                        width="18"
+                                        height="16"
+                                        rx="2"
+                                    />
+
+                                    <path d="M16 3v4M8 3v4M3 10h18"/>
+                                </svg>
+
+                            </div>
+
+
+                            <div>
+
+                                <p class="text-xs font-semibold uppercase text-slate-400">
+                                    Duration
+                                </p>
+
+                                <p class="font-black text-slate-800">
+                                    {{ $plan->duration_days }} days
+                                </p>
+
+                            </div>
 
                         </div>
 
-                        <div class="flex items-center justify-between">
 
-                            <span class="text-slate-500">
-                                Application Limit
-                            </span>
+                        {{-- Application Limit --}}
+                        <div class="flex items-center gap-3">
 
-                            <strong class="text-slate-800">
+                            <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50 text-violet-600">
 
-                                @if($plan->application_limit === null)
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    class="h-5 w-5"
+                                >
+                                    <path d="M8 6h13M8 12h13M8 18h13"/>
+                                    <path d="M3 6h.01M3 12h.01M3 18h.01"/>
+                                </svg>
 
-                                    Unlimited
+                            </div>
 
-                                @else
 
-                                    {{ $plan->application_limit }}
+                            <div>
 
-                                @endif
+                                <p class="text-xs font-semibold uppercase text-slate-400">
+                                    Application Limit
+                                </p>
 
-                            </strong>
+                                <p class="font-black text-slate-800">
+
+                                    @if($plan->application_limit === null)
+
+                                        Unlimited applications
+
+                                    @else
+
+                                        {{ $plan->application_limit }}
+                                        applications
+
+                                    @endif
+
+                                </p>
+
+                            </div>
+
+                        </div>
+
+
+                        {{-- Access --}}
+                        <div class="flex items-center gap-3">
+
+                            <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2.4"
+                                    class="h-5 w-5"
+                                >
+                                    <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        d="M5 12.5l4 4L19 7"
+                                    />
+                                </svg>
+
+                            </div>
+
+
+                            <div>
+
+                                <p class="text-xs font-semibold uppercase text-slate-400">
+                                    Access
+                                </p>
+
+                                <p class="font-black text-slate-800">
+                                    Tuition marketplace access
+                                </p>
+
+                            </div>
 
                         </div>
 
                     </div>
 
-                    <div class="mt-7">
 
-                        @if($hasPending)
+                    {{-- =====================================================
+                         ACTION
+                    ====================================================== --}}
+                    <div class="mt-auto pt-7">
 
-                            <button
-                                type="button"
-                                disabled
-                                class="w-full cursor-not-allowed rounded-xl bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-400"
-                            >
-                                Pending Payment Exists
-                            </button>
-
-                        @elseif($isCurrentPlan)
+                        {{-- =================================================
+                             CURRENT PLAN
+                        ================================================== --}}
+                        @if($isCurrentPlan)
 
                             @if((float) $plan->price > 0)
+
+                                @if($hasPending)
+
+                                    <button
+                                        type="button"
+                                        disabled
+                                        class="th-renew-button"
+                                        style="opacity:.55;"
+                                    >
+                                        Renew {{ $plan->name }}
+                                    </button>
+
+                                    <p class="mt-2 text-center text-xs font-semibold text-orange-600">
+                                        Complete pending payment first.
+                                    </p>
+
+                                @else
+
+                                    <form
+                                        method="POST"
+                                        action="{{ route(
+                                            'teacher.subscription.subscribe',
+                                            $plan
+                                        ) }}"
+                                    >
+
+                                        @csrf
+
+
+                                        <button
+                                            type="submit"
+                                            class="th-renew-button"
+                                        >
+
+                                            <svg
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                viewBox="0 0 24 24"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                stroke-width="2"
+                                                style="
+                                                    width:18px;
+                                                    height:18px;
+                                                "
+                                            >
+                                                <path d="M4 12a8 8 0 0 1 14-5"/>
+                                                <path d="M18 3v4h-4"/>
+                                            </svg>
+
+                                            Renew {{ $plan->name }}
+
+                                        </button>
+
+                                    </form>
+
+                                @endif
+
+
+                            @else
+
+                                <button
+                                    type="button"
+                                    disabled
+                                    class="w-full cursor-not-allowed rounded-xl bg-emerald-50 px-4 py-3.5 text-sm font-black text-emerald-700"
+                                >
+                                    Current Free Plan
+                                </button>
+
+                            @endif
+
+
+                        {{-- =================================================
+                             UPGRADE
+                             THIS IS THE PRO BUTTON
+                        ================================================== --}}
+                        @elseif($isUpgrade)
+
+                            @if($hasPending)
+
+                                <button
+                                    type="button"
+                                    disabled
+                                    class="th-upgrade-button"
+                                >
+
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2.4"
+                                        style="
+                                            width:18px;
+                                            height:18px;
+                                        "
+                                    >
+                                        <path d="M12 19V5"/>
+                                        <path d="M6 11l6-6 6 6"/>
+                                    </svg>
+
+                                    Upgrade to {{ $plan->name }}
+
+                                </button>
+
+
+                                <p class="mt-2 text-center text-xs font-semibold text-orange-600">
+                                    Complete pending payment first.
+                                </p>
+
+
+                            @else
 
                                 <form
                                     method="POST"
@@ -343,88 +870,120 @@
                                         $plan
                                     ) }}"
                                 >
+
                                     @csrf
+
 
                                     <button
                                         type="submit"
-                                        onclick="return confirm('Renew this subscription? Your remaining days will be preserved after payment approval.')"
-                                        class="w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-emerald-700"
+                                        class="th-upgrade-button"
                                     >
-                                        Renew Plan
+
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            stroke-width="2.4"
+                                            style="
+                                                width:18px;
+                                                height:18px;
+                                            "
+                                        >
+                                            <path d="M12 19V5"/>
+                                            <path d="M6 11l6-6 6 6"/>
+                                        </svg>
+
+
+                                        <span style="color:#ffffff !important;">
+                                            Upgrade to {{ $plan->name }}
+                                        </span>
+
                                     </button>
 
                                 </form>
 
-                            @else
-
-                                <button
-                                    type="button"
-                                    disabled
-                                    class="w-full cursor-not-allowed rounded-xl bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-400"
-                                >
-                                    Current Free Plan
-                                </button>
-
                             @endif
 
-                        @elseif($isUpgrade)
 
-                            <form
-                                method="POST"
-                                action="{{ route(
-                                    'teacher.subscription.subscribe',
-                                    $plan
-                                ) }}"
-                            >
-                                @csrf
-
-                                <button
-                                    type="submit"
-                                    onclick="return confirm('Upgrade to this plan? The upgraded plan will become active after payment approval.')"
-                                    class="w-full rounded-xl bg-indigo-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-indigo-700"
-                                >
-                                    Upgrade to {{ $plan->name }}
-                                </button>
-
-                            </form>
-
+                        {{-- =================================================
+                             DOWNGRADE
+                        ================================================== --}}
                         @elseif($isDowngrade)
 
                             <button
                                 type="button"
                                 disabled
-                                class="w-full cursor-not-allowed rounded-xl bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-400"
+                                class="w-full cursor-not-allowed rounded-xl bg-slate-100 px-4 py-3.5 text-sm font-bold text-slate-400"
                             >
                                 Available After Expiry
                             </button>
 
+
+                        {{-- =================================================
+                             CHOOSE PLAN
+                        ================================================== --}}
                         @else
 
-                            <form
-                                method="POST"
-                                action="{{ route(
-                                    'teacher.subscription.subscribe',
-                                    $plan
-                                ) }}"
-                            >
-                                @csrf
+                            @if($hasPending)
 
                                 <button
-                                    type="submit"
-                                    class="w-full rounded-xl bg-indigo-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-indigo-700"
+                                    type="button"
+                                    disabled
+                                    class="w-full cursor-not-allowed rounded-xl bg-slate-100 px-4 py-3.5 text-sm font-bold text-slate-400"
                                 >
-                                    @if((float) $plan->price === 0.0)
+
+                                    @if($isFree)
 
                                         Activate Free Plan
 
                                     @else
 
-                                        Choose Plan
+                                        Choose {{ $plan->name }}
 
                                     @endif
+
                                 </button>
 
-                            </form>
+
+                                <p class="mt-2 text-center text-xs font-semibold text-orange-600">
+                                    Complete pending payment first.
+                                </p>
+
+
+                            @else
+
+                                <form
+                                    method="POST"
+                                    action="{{ route(
+                                        'teacher.subscription.subscribe',
+                                        $plan
+                                    ) }}"
+                                >
+
+                                    @csrf
+
+
+                                    <button
+                                        type="submit"
+                                        class="th-normal-button"
+                                    >
+
+                                        @if($isFree)
+
+                                            Activate Free Plan
+
+                                        @else
+
+                                            Choose {{ $plan->name }}
+
+                                        @endif
+
+                                    </button>
+
+                                </form>
+
+                            @endif
 
                         @endif
 
@@ -438,124 +997,169 @@
 
     </section>
 
-    <section class="mt-10">
 
-        <h3 class="text-xl font-black text-slate-900">
+    {{-- =========================================================
+         SUBSCRIPTION HISTORY
+    ========================================================== --}}
+    <section class="mt-14">
+
+        <p class="text-xs font-black uppercase tracking-[0.2em] text-slate-400">
+            Activity
+        </p>
+
+
+        <h2 class="mt-2 text-2xl font-black text-slate-900">
             Subscription History
-        </h3>
+        </h2>
 
-        <div class="mt-5 overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
 
-            <table class="min-w-full text-sm">
+        <div class="mt-5 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
 
-                <thead class="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+            <div class="overflow-x-auto">
 
-                    <tr>
+                <table class="w-full min-w-[760px] text-sm">
 
-                        <th class="px-5 py-4">
-                            Plan
-                        </th>
+                    <thead class="bg-slate-50">
 
-                        <th class="px-5 py-4">
-                            Amount
-                        </th>
+                        <tr class="text-left text-xs uppercase tracking-wide text-slate-400">
 
-                        <th class="px-5 py-4">
-                            Status
-                        </th>
+                            <th class="px-6 py-4">
+                                Plan
+                            </th>
 
-                        <th class="px-5 py-4">
-                            Started
-                        </th>
+                            <th class="px-6 py-4">
+                                Amount
+                            </th>
 
-                        <th class="px-5 py-4">
-                            Expires
-                        </th>
+                            <th class="px-6 py-4">
+                                Status
+                            </th>
 
-                    </tr>
+                            <th class="px-6 py-4">
+                                Started
+                            </th>
 
-                </thead>
-
-                <tbody class="divide-y divide-slate-100">
-
-                    @forelse($subscriptionHistory as $subscription)
-
-                        @php
-                            $historyStatusClass = match($subscription->status) {
-                                'active' => 'bg-emerald-50 text-emerald-700',
-                                'pending' => 'bg-amber-50 text-amber-700',
-                                'expired' => 'bg-slate-100 text-slate-600',
-                                'cancelled' => 'bg-rose-50 text-rose-700',
-                                default => 'bg-slate-100 text-slate-600',
-                            };
-                        @endphp
-
-                        <tr>
-
-                            <td class="px-5 py-4 font-semibold text-slate-900">
-                                {{
-                                    $subscription->plan_name_snapshot
-                                    ?: $subscription->plan?->name
-                                    ?: 'N/A'
-                                }}
-                            </td>
-
-                            <td class="px-5 py-4 text-slate-600">
-                                ৳{{ number_format(
-                                    (float) $subscription->amount,
-                                    2
-                                ) }}
-                            </td>
-
-                            <td class="px-5 py-4">
-
-                                <span class="rounded-full px-2.5 py-1 text-[10px] font-bold {{ $historyStatusClass }}">
-                                    {{ strtoupper($subscription->status) }}
-                                </span>
-
-                            </td>
-
-                            <td class="px-5 py-4 text-slate-600">
-                                {{
-                                    $subscription
-                                        ->starts_at
-                                        ?->format('d M Y')
-                                    ?? '—'
-                                }}
-                            </td>
-
-                            <td class="px-5 py-4 text-slate-600">
-                                {{
-                                    $subscription
-                                        ->expires_at
-                                        ?->format('d M Y')
-                                    ?? '—'
-                                }}
-                            </td>
+                            <th class="px-6 py-4">
+                                Expires
+                            </th>
 
                         </tr>
 
-                    @empty
+                    </thead>
 
-                        <tr>
 
-                            <td
-                                colspan="5"
-                                class="px-5 py-12 text-center text-slate-500"
-                            >
-                                No subscription history yet.
-                            </td>
+                    <tbody class="divide-y divide-slate-100">
 
-                        </tr>
+                        @forelse($subscriptionHistory as $subscription)
 
-                    @endforelse
+                            <tr class="hover:bg-slate-50">
 
-                </tbody>
+                                <td class="px-6 py-4 font-black text-slate-800">
 
-            </table>
+                                    {{
+                                        $subscription
+                                            ->plan
+                                            ?->name
+                                        ?? 'N/A'
+                                    }}
+
+                                </td>
+
+
+                                <td class="px-6 py-4 font-semibold text-slate-700">
+
+                                    ৳{{
+                                        number_format(
+                                            (float) $subscription->amount,
+                                            2
+                                        )
+                                    }}
+
+                                </td>
+
+
+                                <td class="px-6 py-4">
+
+                                    <span
+                                        class="
+                                            rounded-full px-3 py-1 text-xs font-black
+
+                                            @if($subscription->status === 'active')
+                                                bg-emerald-50 text-emerald-700
+
+                                            @elseif($subscription->status === 'pending')
+                                                bg-amber-50 text-amber-700
+
+                                            @elseif($subscription->status === 'expired')
+                                                bg-slate-100 text-slate-600
+
+                                            @elseif($subscription->status === 'cancelled')
+                                                bg-rose-50 text-rose-700
+
+                                            @else
+                                                bg-slate-100 text-slate-600
+                                            @endif
+                                        "
+                                    >
+
+                                        {{ strtoupper($subscription->status) }}
+
+                                    </span>
+
+                                </td>
+
+
+                                <td class="px-6 py-4 text-slate-600">
+
+                                    {{
+                                        $subscription
+                                            ->starts_at
+                                            ?->format('d M Y')
+                                        ?? '—'
+                                    }}
+
+                                </td>
+
+
+                                <td class="px-6 py-4 text-slate-600">
+
+                                    {{
+                                        $subscription
+                                            ->expires_at
+                                            ?->format('d M Y')
+                                        ?? '—'
+                                    }}
+
+                                </td>
+
+                            </tr>
+
+
+                        @empty
+
+                            <tr>
+
+                                <td
+                                    colspan="5"
+                                    class="px-6 py-12 text-center text-slate-500"
+                                >
+                                    No subscription history yet.
+                                </td>
+
+                            </tr>
+
+                        @endforelse
+
+                    </tbody>
+
+                </table>
+
+            </div>
 
         </div>
 
     </section>
+
+</div>
 
 @endsection

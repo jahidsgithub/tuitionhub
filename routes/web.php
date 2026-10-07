@@ -10,6 +10,8 @@ use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\PaymentController as AdminPaymentController;
 use App\Http\Controllers\Admin\PaymentSettingController;
 use App\Http\Controllers\Admin\SubscriptionPlanController;
+use App\Http\Controllers\Admin\TeacherProfileController as AdminTeacherProfileController;
+use App\Http\Controllers\Admin\TeacherProfileEditRequestController as AdminTeacherProfileEditRequestController;
 use App\Http\Controllers\Admin\TeacherVerificationController;
 use App\Http\Controllers\Admin\TuitionModerationController;
 use App\Http\Controllers\Admin\UserManagementController;
@@ -290,15 +292,26 @@ Route::middleware([
             'index',
         ])->name('dashboard');
 
+        /*
+        |--------------------------------------------------------------------------
+        | Teacher Profile
+        |--------------------------------------------------------------------------
+        */
+
         Route::get('/profile', [
             TeacherProfileController::class,
             'edit',
         ])->name('profile.edit');
 
-        Route::put('/profile', [
+        Route::get('/profile/edit-request', [
             TeacherProfileController::class,
-            'update',
-        ])->name('profile.update');
+            'requestEdit',
+        ])->name('profile.request.edit');
+
+        Route::post('/profile/edit-request', [
+            TeacherProfileController::class,
+            'storeEditRequest',
+        ])->name('profile.request.store');
 
         /*
         |--------------------------------------------------------------------------
@@ -712,6 +725,53 @@ Route::middleware([
             TeacherVerificationController::class,
             'unverify',
         ])->name('teachers.unverify');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Admin Teacher Profile Edit
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get('/teachers/{teacher}/edit', [
+            AdminTeacherProfileController::class,
+            'edit',
+        ])->name('teachers.edit');
+
+        Route::put('/teachers/{teacher}', [
+            AdminTeacherProfileController::class,
+            'update',
+        ])->name('teachers.update');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Teacher Profile Edit Requests
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get('/teacher-profile-edit-requests', [
+            AdminTeacherProfileEditRequestController::class,
+            'index',
+        ])->name('teacher-profile-edit-requests.index');
+
+        Route::patch(
+            '/teacher-profile-edit-requests/{editRequest}/approve',
+            [
+                AdminTeacherProfileEditRequestController::class,
+                'approve',
+            ]
+        )->name(
+            'teacher-profile-edit-requests.approve'
+        );
+
+        Route::patch(
+            '/teacher-profile-edit-requests/{editRequest}/reject',
+            [
+                AdminTeacherProfileEditRequestController::class,
+                'reject',
+            ]
+        )->name(
+            'teacher-profile-edit-requests.reject'
+        );
 
         /*
         |--------------------------------------------------------------------------

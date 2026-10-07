@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class TeacherProfile extends Model
 {
@@ -97,6 +98,37 @@ class TeacherProfile extends Model
         );
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Profile Edit Requests
+    |--------------------------------------------------------------------------
+    */
+
+    public function profileEditRequests(): HasMany
+    {
+        return $this->hasMany(
+            TeacherProfileEditRequest::class
+        );
+    }
+
+    public function pendingProfileEditRequest(): HasOne
+    {
+        return $this->hasOne(
+            TeacherProfileEditRequest::class
+        )
+            ->where(
+                'status',
+                TeacherProfileEditRequest::STATUS_PENDING
+            )
+            ->latestOfMany();
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Verification Helpers
+    |--------------------------------------------------------------------------
+    */
+
     public function hasApprovedVerificationDocument(): bool
     {
         return $this
@@ -128,7 +160,8 @@ class TeacherProfile extends Model
         }
 
         if (! $this->university) {
-            $missing[] = 'university / institution';
+            $missing[] =
+                'university / institution';
         }
 
         if (! $this->department) {
@@ -144,7 +177,8 @@ class TeacherProfile extends Model
                 ->subjects()
                 ->exists()
         ) {
-            $missing[] = 'at least one subject';
+            $missing[] =
+                'at least one subject';
         }
 
         if (
@@ -161,11 +195,18 @@ class TeacherProfile extends Model
                 ->locations()
                 ->exists()
         ) {
-            $missing[] = 'at least one teaching location';
+            $missing[] =
+                'at least one teaching location';
         }
 
         return $missing;
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Rating / Assignment Helpers
+    |--------------------------------------------------------------------------
+    */
 
     public function averageRating(): float
     {

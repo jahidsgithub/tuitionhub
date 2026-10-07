@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\TeacherProfile;
+use App\Models\TeacherProfileEditRequest;
 use App\Services\UserNotificationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -23,24 +24,31 @@ class TeacherVerificationController extends Controller
             ->withCount([
                 'verificationDocuments',
 
-                'verificationDocuments as approved_documents_count' => function ($q) {
-                    $q->where(
+                'verificationDocuments as approved_documents_count' => function ($query) {
+                    $query->where(
                         'status',
                         'approved'
                     );
                 },
 
-                'verificationDocuments as pending_documents_count' => function ($q) {
-                    $q->where(
+                'verificationDocuments as pending_documents_count' => function ($query) {
+                    $query->where(
                         'status',
                         'pending'
+                    );
+                },
+
+                'profileEditRequests as pending_profile_edit_requests_count' => function ($query) {
+                    $query->where(
+                        'status',
+                        TeacherProfileEditRequest::STATUS_PENDING
                     );
                 },
             ]);
 
         if ($request->filled('search')) {
             $search = trim(
-                $request->search
+                (string) $request->search
             );
 
             $query->whereHas(
@@ -88,14 +96,17 @@ class TeacherVerificationController extends Controller
             }
         }
 
-        $teachers = $query
-            ->latest()
-            ->paginate(15)
-            ->withQueryString();
+        $teachers =
+            $query
+                ->latest()
+                ->paginate(15)
+                ->withQueryString();
 
         return view(
             'admin.teachers.index',
-            compact('teachers')
+            compact(
+                'teachers'
+            )
         );
     }
 
@@ -115,17 +126,21 @@ class TeacherVerificationController extends Controller
             );
         }
 
-        if (! $teacher->isCompleteForVerification()) {
+        if (
+            ! $teacher
+                ->isCompleteForVerification()
+        ) {
             $missing = implode(
                 ', ',
-                $teacher->missingVerificationFields()
+                $teacher
+                    ->missingVerificationFields()
             );
 
             return back()->with(
                 'error',
                 'Teacher profile is incomplete. Missing: '
-                    .$missing
-                    .'.'
+                .$missing
+                .'.'
             );
         }
 
@@ -150,7 +165,8 @@ class TeacherVerificationController extends Controller
         }
 
         $teacher->update([
-            'is_verified' => true,
+            'is_verified' =>
+                true,
         ]);
 
         UserNotificationService::send(
@@ -172,7 +188,9 @@ class TeacherVerificationController extends Controller
     public function unverify(
         TeacherProfile $teacher
     ): RedirectResponse {
-        $teacher->load('user');
+        $teacher->load(
+            'user'
+        );
 
         if (! $teacher->is_verified) {
             return back()->with(
@@ -182,7 +200,8 @@ class TeacherVerificationController extends Controller
         }
 
         $teacher->update([
-            'is_verified' => false,
+            'is_verified' =>
+                false,
         ]);
 
         if ($teacher->user) {
